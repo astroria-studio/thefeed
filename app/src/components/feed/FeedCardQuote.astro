@@ -1,0 +1,42 @@
+---
+/**
+ * FeedCardQuote — Large editorial quote card.
+ * Reusable: feed, homepage highlight, sidebars.
+ */
+import type { QuotePost } from "../../lib/types";
+
+interface Props {
+    post: QuotePost;
+}
+
+const { post } = Astro.props;
+---
+
+<a
+    href={`/${post.slug}`}
+    class="block rounded-xl bg-gradient-to-br from-accent-soft to-white border border-accent-mid p-6 md:p-8 transition-shadow hover:shadow-sm"
+>
+    <div class="flex items-start gap-3 mb-4">
+        <svg
+            class="w-6 h-6 text-accent shrink-0 mt-1"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+        >
+            <path
+                d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"
+            ></path>
+        </svg>
+        <blockquote
+            class="font-heading text-xl md:text-2xl font-medium text-accent leading-relaxed italic"
+        >
+            {post.quoteText}
+        </blockquote>
+    </div>
+    {
+        post.attribution && (
+            <p class="text-sm font-medium text-soft pl-9">
+                — {post.attribution}
+            </p>
+        )
+    }
+</a>

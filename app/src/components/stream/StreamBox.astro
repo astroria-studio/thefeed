@@ -1,0 +1,56 @@
+---
+/**
+ * StreamBox — Compact stream preview box for homepage/feed.
+ * Shows the latest stream items in a bordered card with a "View all" link.
+ * Clicking an item opens the StreamModal.
+ */
+import { Radio, Rss } from "@lucide/astro";
+import StreamCard from "./StreamCard.astro";
+import type { StreamItem } from "../../lib/types";
+
+interface Props {
+    items: StreamItem[];
+    limit?: number;
+}
+
+const { items, limit = 5 } = Astro.props;
+const displayItems = items.slice(0, limit);
+---
+
+{displayItems.length > 0 && (
+    <section class="stream-box mb-8">
+        <div class="rounded-xl border border-[var(--color-border)] bg-[var(--color-card,white)] overflow-hidden">
+            <!-- Header -->
+            <div class="flex items-center justify-between px-4 py-3 border-b border-[var(--color-border)]">
+                <div class="flex items-center gap-2">
+                    <Radio class="w-4 h-4 text-[var(--color-accent)]" />
+                    <span class="text-[13px] font-semibold text-[var(--color-ink)] uppercase tracking-wide">
+                        Stream
+                    </span>
+                    <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse" title="Live updates"></span>
+                </div>
+                <div class="flex items-center gap-3">
+                    <a
+                        href="/stream/rss.xml"
+                        class="text-[var(--color-soft)] hover:text-[var(--color-accent)] transition-colors"
+                        title="RSS Feed"
+                    >
+                        <Rss class="w-4 h-4" />
+                    </a>
+                    <a
+                        href="/stream"
+                        class="text-xs font-medium text-[var(--color-soft)] hover:text-[var(--color-accent)] transition-colors"
+                    >
+                        Xem tất cả →
+                    </a>
+                </div>
+            </div>
+            <!-- Items list -->
+            <div class="divide-y divide-[var(--color-border)]/50 px-1">
+                {displayItems.map((item) => (
+                    <StreamCard item={item} compact={true} />
+                ))}
+            </div>
+        </div>
+    </section>
+)}

@@ -1,0 +1,511 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import {
+    Zap,
+    Wrench,
+    BookOpen,
+    GraduationCap,
+    Handshake,
+    Rocket,
+    Facebook,
+    Users,
+    Globe,
+} from "@lucide/astro";
+---
+
+<BaseLayout
+    title="Về Toàn Tony"
+    description="Mình là developer 15 năm, làm automation 10 năm. Nghiên cứu và ứng dụng AI automation full-time — chia sẻ hành trình thật."
+>
+    <!-- 1. HERO -->
+    <section class="hero animate-in" style="--delay: 0">
+        <div class="hero-avatar">
+            <img
+                src="/toan-avatar.jpg"
+                alt="Toàn Tony"
+                width="120"
+                height="120"
+            />
+        </div>
+        <div class="hero-info">
+            <h1>Toàn Tony</h1>
+            <div class="hero-role">AI Automation & Vibe Coding</div>
+            <p class="hero-intro">
+                Mình nghiên cứu và ứng dụng AI automation full-time — chia sẻ
+                hành trình này để cùng nhau tự động hóa và mang lại giá trị thật
+                cho công việc và đời sống.
+            </p>
+        </div>
+    </section>
+
+    <!-- 2. STORY -->
+    <section class="about-section animate-in" style="--delay: 1">
+        <div class="prose-block">
+            <p>
+                Mình là developer 15 năm, làm automation 10 năm — từ trước khi
+                AI trở thành trend.
+            </p>
+            <p>
+                Hiện tại mình nghiên cứu và ứng dụng AI automation full-time tại
+                GOHA và Vân Tay Media. Mỗi ngày mình dùng AI để tự động hóa công
+                việc thật — rồi chia sẻ lại toàn bộ hành trình đó, kể cả những
+                lần thất bại.
+            </p>
+            <p>
+                Mình không phải guru hay thầy dạy AI. Mình chỉ là người đi trước
+                một vài bước và muốn mở hết những gì mình biết cho bạn xem.
+            </p>
+        </div>
+    </section>
+
+    <!-- 3. PHILOSOPHY -->
+    <section class="about-section animate-in" style="--delay: 2">
+        <h2>Learn the Learner</h2>
+        <div class="prose-block">
+            <p>
+                Mình tin vào một cách học khác: <strong
+                    >học từ người đang làm, không phải từ người chỉ dạy.</strong
+                >
+            </p>
+            <p>
+                Những người đáng học nhất không phải expert đứng xa bạn 10 bước.
+                Mà là người đi trước bạn 1-2 bước — họ vẫn nhớ chỗ mình vấp,
+                biết cái gì thật sự hoạt động vì vừa thử xong, và nói cùng ngôn
+                ngữ với bạn.
+            </p>
+            <p>
+                Đó là lý do mình không "dạy". Mình chia sẻ process — bạn tự rút
+                ra bài học của mình.
+            </p>
+        </div>
+    </section>
+
+    <!-- 4. VALUE -->
+    <section class="about-section animate-in" style="--delay: 3">
+        <h2>Mình chia sẻ gì</h2>
+        <div class="value-grid">
+            <div class="value-card">
+                <div class="value-icon"><Zap size={20} /></div>
+                <div class="value-content">
+                    <strong>Tự động hóa công việc bằng AI</strong>
+                    <p>
+                        Biến những task lặp đi lặp lại thành workflow tự động.
+                        Không phải tips hay tricks, mà là cách nghĩ và hệ thống
+                        thật.
+                    </p>
+                </div>
+            </div>
+            <div class="value-card">
+                <div class="value-icon"><Wrench size={20} /></div>
+                <div class="value-content">
+                    <strong>Vibe Coding</strong>
+                    <p>
+                        Build website, app, sản phẩm số với AI — ngay cả khi bạn
+                        không có background lập trình truyền thống. Từ demo đến
+                        production.
+                    </p>
+                </div>
+            </div>
+            <div class="value-card">
+                <div class="value-icon"><BookOpen size={20} /></div>
+                <div class="value-content">
+                    <strong>Hành trình thật</strong>
+                    <p>
+                        Process thật, workflow thật, failures thật. Mình mở hết
+                        cho bạn xem — vì mình tin cách học tốt nhất là nhìn
+                        người khác làm thật.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 5. SERVICES -->
+    <section class="about-section animate-in" style="--delay: 4">
+        <h2>Làm việc cùng mình</h2>
+        <p class="section-intro">
+            Ngoài chia sẻ tại Tony's Friends, mình cũng nhận một số dự án phù
+            hợp:
+        </p>
+        <div class="value-grid">
+            <div class="value-card">
+                <div class="value-icon"><GraduationCap size={20} /></div>
+                <div class="value-content">
+                    <strong>Workshop & đào tạo nội bộ</strong>
+                    <p>
+                        Thiết kế chương trình AI automation theo đúng nhu cầu và
+                        bài toán thật của doanh nghiệp bạn.
+                    </p>
+                </div>
+            </div>
+            <div class="value-card">
+                <div class="value-icon"><Handshake size={20} /></div>
+                <div class="value-content">
+                    <strong>Đồng hành kỹ thuật</strong>
+                    <p>
+                        Cùng thiết kế và vận hành kiến trúc kỹ thuật cho công ty
+                        vừa và nhỏ — từ hệ thống đến workflow.
+                    </p>
+                </div>
+            </div>
+            <div class="value-card">
+                <div class="value-icon"><Rocket size={20} /></div>
+                <div class="value-content">
+                    <strong>Hợp tác dự án</strong>
+                    <p>
+                        Mình luôn mở cho những dự án công nghệ tiềm năng và có
+                        giá trị thật.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="cta-box">
+            <p>Nếu bạn muốn trao đổi, nhắn mình qua Facebook là nhanh nhất.</p>
+            <a
+                href="https://www.facebook.com/toan.bui.164727"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="cta-link"
+            >
+                Nhắn qua Facebook →
+            </a>
+        </div>
+    </section>
+
+    <!-- 6. CONNECT -->
+    <section class="about-section animate-in" style="--delay: 5">
+        <h2>Kết nối với mình</h2>
+        <div class="social-links">
+            <a
+                href="https://www.facebook.com/toan.bui.164727"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="social-card"
+            >
+                <span class="social-icon"><Facebook size={24} /></span>
+                <div class="social-info">
+                    <strong>Facebook</strong>
+                    <span>Nơi mình chia sẻ hàng ngày</span>
+                </div>
+                <span class="social-arrow">→</span>
+            </a>
+            <a
+                href="https://tony.edu.vibery.app"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="social-card"
+            >
+                <span class="social-icon"><Users size={24} /></span>
+                <div class="social-info">
+                    <strong>Tony's Friends</strong>
+                    <span>Cộng đồng tự động hóa công việc bằng AI</span>
+                </div>
+                <span class="social-arrow">→</span>
+            </a>
+            <a href="https://arealisticdreamer.com" class="social-card">
+                <span class="social-icon"><Globe size={24} /></span>
+                <div class="social-info">
+                    <strong>Website</strong>
+                    <span>Blog về AI automation & vibe coding</span>
+                </div>
+                <span class="social-arrow">→</span>
+            </a>
+        </div>
+        <p class="closing-note">
+            Cách nhanh nhất để theo dõi mình là Facebook. Muốn đi sâu hơn thì
+            ghé Tony's Friends — nơi mình mở hết process và cùng nhau build.
+        </p>
+    </section>
+</BaseLayout>
+
+<style>
+    /* ============================
+     Hero Section
+     ============================ */
+    .hero {
+        display: flex;
+        align-items: center;
+        gap: 28px;
+        padding: 48px 0 40px;
+    }
+
+    .hero-avatar img {
+        width: 120px;
+        height: 120px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid var(--color-border);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+    }
+
+    .hero-info {
+        flex: 1;
+    }
+
+    .hero h1 {
+        font-size: 32px;
+        font-weight: 600;
+        letter-spacing: -0.03em;
+        margin-bottom: 4px;
+    }
+
+    .hero-role {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--color-accent);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 14px;
+    }
+
+    .hero-intro {
+        font-size: 16px;
+        color: var(--color-soft);
+        line-height: 1.7;
+    }
+
+    /* ============================
+     Sections
+     ============================ */
+    .about-section {
+        padding: 36px 0;
+        border-top: 1px solid var(--color-border-light);
+    }
+
+    .about-section h2 {
+        font-size: 24px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+        margin-bottom: 18px;
+        color: var(--color-ink);
+    }
+
+    .section-intro {
+        font-size: 16px;
+        color: var(--color-soft);
+        margin-bottom: 24px;
+        line-height: 1.7;
+    }
+
+    /* ============================
+     Prose
+     ============================ */
+    .prose-block {
+        max-width: 600px;
+    }
+
+    .prose-block p {
+        font-size: 16px;
+        line-height: 1.8;
+        color: var(--color-ink);
+        margin-bottom: 16px;
+    }
+
+    .prose-block p:last-child {
+        margin-bottom: 0;
+    }
+
+    .prose-block strong {
+        font-weight: 600;
+        color: var(--color-ink);
+    }
+
+    /* ============================
+     Value / Service Cards
+     ============================ */
+    .value-grid {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .value-card {
+        display: flex;
+        gap: 16px;
+        padding: 20px;
+        border: 1px solid var(--color-border);
+        border-radius: 12px;
+        background: var(--color-card);
+        transition:
+            border-color 0.2s,
+            box-shadow 0.2s;
+    }
+
+    .value-card:hover {
+        border-color: var(--color-accent-mid);
+        box-shadow: 0 2px 12px rgba(90, 79, 207, 0.06);
+    }
+
+    .value-icon {
+        flex-shrink: 0;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--color-accent-soft);
+        color: var(--color-accent);
+        border-radius: 10px;
+    }
+
+    .value-content {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .value-content strong {
+        display: block;
+        font-size: 16px;
+        font-weight: 600;
+        color: var(--color-ink);
+        margin-bottom: 6px;
+    }
+
+    .value-content p {
+        font-size: 15px;
+        color: var(--color-soft);
+        line-height: 1.65;
+        margin: 0;
+    }
+
+    /* ============================
+     CTA Box
+     ============================ */
+    .cta-box {
+        margin-top: 28px;
+        padding: 24px;
+        background: var(--color-accent-soft);
+        border-radius: 12px;
+        text-align: center;
+    }
+
+    .cta-box p {
+        font-size: 15px;
+        color: var(--color-soft);
+        margin-bottom: 14px;
+    }
+
+    .cta-link {
+        display: inline-block;
+        padding: 10px 24px;
+        background: var(--color-ink);
+        color: white !important;
+        font-size: 15px;
+        font-weight: 600;
+        border-radius: 8px;
+        transition: opacity 0.2s;
+    }
+
+    .cta-link:hover {
+        opacity: 0.85;
+        color: white !important;
+    }
+
+    /* ============================
+     Social Links
+     ============================ */
+    .social-links {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 24px;
+    }
+
+    .social-card {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 16px 18px;
+        border: 1px solid var(--color-border);
+        border-radius: 12px;
+        background: var(--color-card);
+        transition:
+            border-color 0.2s,
+            box-shadow 0.2s;
+        text-decoration: none;
+        color: inherit;
+    }
+
+    .social-card:hover {
+        border-color: var(--color-accent-mid);
+        box-shadow: 0 2px 12px rgba(90, 79, 207, 0.06);
+        color: inherit;
+    }
+
+    .social-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--color-accent);
+        flex-shrink: 0;
+    }
+
+    .social-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .social-info strong {
+        display: block;
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--color-ink);
+    }
+
+    .social-info span {
+        font-size: 13px;
+        color: var(--color-soft);
+    }
+
+    .social-arrow {
+        font-size: 16px;
+        color: var(--color-faint);
+        flex-shrink: 0;
+        transition:
+            color 0.2s,
+            transform 0.2s;
+    }
+
+    .social-card:hover .social-arrow {
+        color: var(--color-accent);
+        transform: translateX(3px);
+    }
+
+    .closing-note {
+        font-size: 15px;
+        color: var(--color-soft);
+        line-height: 1.7;
+        padding-bottom: 20px;
+    }
+
+    /* ============================
+     Responsive
+     ============================ */
+    @media (max-width: 640px) {
+        .hero {
+            flex-direction: column;
+            text-align: center;
+            padding: 36px 0 32px;
+        }
+
+        .hero h1 {
+            font-size: 28px;
+        }
+
+        .hero-intro {
+            font-size: 15px;
+        }
+
+        .about-section {
+            padding: 28px 0;
+        }
+
+        .about-section h2 {
+            font-size: 22px;
+        }
+
+        .value-card {
+            padding: 16px;
+        }
+    }
+</style>

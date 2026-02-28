@@ -1,0 +1,585 @@
+---
+/**
+ * /reels — Full-screen vertical reels viewer (Facebook Reels desktop style).
+ * Dark background, centered vertical video, share button + nav on right.
+ */
+import { getPosts } from "../../lib/data";
+import type { ShortVideoPost } from "../../lib/types";
+
+const videos = (await getPosts("short-video")) as ShortVideoPost[];
+const startSlug = Astro.url.searchParams.get("v") || videos[0]?.slug;
+const startIndex = Math.max(
+    0,
+    videos.findIndex((v) => v.slug === startSlug),
+);
+---
+
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Reels — A Realistic Dreamer</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+            rel="stylesheet"
+        />
+        <style>
+            *,
+            *::before,
+            *::after {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family:
+                    "Inter",
+                    -apple-system,
+                    sans-serif;
+                background: #000;
+                color: #fff;
+                height: 100dvh;
+                overflow: hidden;
+                user-select: none;
+            }
+
+            /* Layout */
+            .reels-container {
+                display: flex;
+                height: 100dvh;
+                justify-content: center;
+                align-items: center;
+                position: relative;
+            }
+
+            /* Back button */
+            .back-btn {
+                position: fixed;
+                top: 20px;
+                left: 20px;
+                z-index: 100;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                color: #fff;
+                text-decoration: none;
+                font-size: 14px;
+                font-weight: 500;
+                opacity: 0.8;
+                transition: opacity 0.2s;
+            }
+            .back-btn:hover {
+                opacity: 1;
+            }
+            .back-btn svg {
+                width: 20px;
+                height: 20px;
+            }
+
+            /* Video area — flexible to respect original ratio */
+            .video-viewport {
+                position: relative;
+                width: min(460px, 90vw);
+                height: min(92vh, 820px);
+                border-radius: 12px;
+                overflow: hidden;
+                background: #111;
+                cursor: pointer;
+                flex-shrink: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            }
+
+            .video-viewport video {
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+                display: block;
+            }
+
+            /* Video overlay — gradient at bottom */
+            .video-overlay {
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                padding: 60px 16px 20px;
+                background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+                pointer-events: none;
+            }
+
+            .video-overlay .author {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin-bottom: 8px;
+            }
+            .video-overlay .author-avatar {
+                width: 32px;
+                height: 32px;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.2);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 14px;
+                font-weight: 600;
+            }
+            .video-overlay .author-name {
+                font-size: 13px;
+                font-weight: 600;
+            }
+            .video-overlay .author-follow {
+                font-size: 12px;
+                color: rgba(255, 255, 255, 0.6);
+                margin-left: 4px;
+            }
+            .video-overlay .caption {
+                font-size: 14px;
+                line-height: 1.4;
+                max-width: 340px;
+            }
+
+            /* Pause icon overlay */
+            .pause-overlay {
+                position: absolute;
+                inset: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                opacity: 0;
+                transition: opacity 0.15s;
+                pointer-events: none;
+            }
+            .pause-overlay.visible {
+                opacity: 1;
+            }
+            .pause-overlay svg {
+                width: 60px;
+                height: 60px;
+                filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
+            }
+
+            /* Progress bar at top */
+            .progress-bar {
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 3px;
+                background: rgba(255, 255, 255, 0.15);
+                z-index: 10;
+            }
+            .progress-fill {
+                height: 100%;
+                background: #fff;
+                border-radius: 0 2px 2px 0;
+                transition: width 0.1s linear;
+                width: 0%;
+            }
+
+            /* Right side — share + nav only (no like/comment) */
+            .action-buttons {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 16px;
+                margin-left: 16px;
+                flex-shrink: 0;
+            }
+
+            .action-btn {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 4px;
+                cursor: pointer;
+                border: none;
+                background: none;
+                color: #fff;
+                transition: transform 0.15s;
+            }
+            .action-btn:hover {
+                transform: scale(1.1);
+            }
+            .action-btn:active {
+                transform: scale(0.95);
+            }
+
+            .action-btn .icon-circle {
+                width: 44px;
+                height: 44px;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.1);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                backdrop-filter: blur(8px);
+            }
+            .action-btn svg {
+                width: 22px;
+                height: 22px;
+            }
+            .action-btn .label {
+                font-size: 11px;
+                font-weight: 500;
+                color: rgba(255, 255, 255, 0.7);
+            }
+
+            /* Nav arrows */
+            .nav-arrows {
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+                margin-top: 8px;
+            }
+            .nav-arrow {
+                width: 44px;
+                height: 44px;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.1);
+                border: none;
+                color: #fff;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                transition: background 0.2s;
+            }
+            .nav-arrow:hover {
+                background: rgba(255, 255, 255, 0.2);
+            }
+            .nav-arrow:disabled {
+                opacity: 0.3;
+                cursor: default;
+            }
+            .nav-arrow svg {
+                width: 24px;
+                height: 24px;
+            }
+
+            /* Slide transition */
+            .slide-up {
+                animation: slideUp 0.3s ease-out;
+            }
+            .slide-down {
+                animation: slideDown 0.3s ease-out;
+            }
+            @keyframes slideUp {
+                from {
+                    transform: translateY(40px);
+                    opacity: 0.5;
+                }
+                to {
+                    transform: translateY(0);
+                    opacity: 1;
+                }
+            }
+            @keyframes slideDown {
+                from {
+                    transform: translateY(-40px);
+                    opacity: 0.5;
+                }
+                to {
+                    transform: translateY(0);
+                    opacity: 1;
+                }
+            }
+
+            /* Counter badge */
+            .reel-counter {
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                font-size: 13px;
+                color: rgba(255, 255, 255, 0.5);
+                font-variant-numeric: tabular-nums;
+            }
+        </style>
+    </head>
+    <body>
+        <!-- Back -->
+        <a href="/feed" class="back-btn">
+            <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"></path></svg
+            >
+            Back
+        </a>
+
+        <span class="reel-counter" id="counter"></span>
+
+        <div class="reels-container">
+            <!-- Video viewport -->
+            <div class="video-viewport" id="viewport">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <video id="reelVideo" playsinline loop muted></video>
+                <div class="pause-overlay" id="pauseOverlay">
+                    <svg viewBox="0 0 24 24" fill="white"
+                        ><path d="M8 5v14l11-7z"></path></svg
+                    >
+                </div>
+                <div class="video-overlay">
+                    <div class="author">
+                        <div class="author-avatar">T</div>
+                        <span class="author-name">Toàn Tony</span>
+                        <span class="author-follow">· Following</span>
+                    </div>
+                    <div class="caption" id="caption"></div>
+                </div>
+            </div>
+
+            <!-- Action buttons: share + nav only -->
+            <div class="action-buttons">
+                <button class="action-btn" id="shareBtn">
+                    <div class="icon-circle">
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            ><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"
+                            ></path><polyline points="16 6 12 2 8 6"
+                            ></polyline><line x1="12" y1="2" x2="12" y2="15"
+                            ></line></svg
+                        >
+                    </div>
+                    <span class="label">Share</span>
+                </button>
+
+                <div class="nav-arrows">
+                    <button
+                        class="nav-arrow"
+                        id="prevBtn"
+                        aria-label="Previous"
+                    >
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            ><path d="M18 15l-6-6-6 6"></path></svg
+                        >
+                    </button>
+                    <button class="nav-arrow" id="nextBtn" aria-label="Next">
+                        <svg
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2"><path d="M6 9l6 6 6-6"></path></svg
+                        >
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <script define:vars={{ videos: JSON.stringify(videos), startIndex }}>
+            const VIDEOS = JSON.parse(videos);
+            let currentIndex = startIndex;
+            let isPlaying = true;
+
+            const video = document.getElementById("reelVideo");
+            const viewport = document.getElementById("viewport");
+            const progressFill = document.getElementById("progressFill");
+            const pauseOverlay = document.getElementById("pauseOverlay");
+            const caption = document.getElementById("caption");
+            const counter = document.getElementById("counter");
+            const prevBtn = document.getElementById("prevBtn");
+            const nextBtn = document.getElementById("nextBtn");
+
+            function loadVideo(index, direction) {
+                const v = VIDEOS[index];
+                if (!v) return;
+
+                if (direction) {
+                    viewport.classList.remove("slide-up", "slide-down");
+                    void viewport.offsetWidth;
+                    viewport.classList.add(
+                        direction === "up" ? "slide-up" : "slide-down",
+                    );
+                }
+
+                video.src = v.videoUrl;
+                video.poster = v.posterUrl || "";
+                video.load();
+                caption.textContent = v.title;
+                counter.textContent = `${index + 1} / ${VIDEOS.length}`;
+
+                const url = new URL(window.location);
+                url.searchParams.set("v", v.slug);
+                history.replaceState({}, "", url);
+
+                prevBtn.disabled = index === 0;
+                nextBtn.disabled = index === VIDEOS.length - 1;
+
+                isPlaying = true;
+                pauseOverlay.classList.remove("visible");
+                video.play().catch(() => {});
+            }
+
+            video.addEventListener("timeupdate", () => {
+                if (video.duration) {
+                    progressFill.style.width = `${(video.currentTime / video.duration) * 100}%`;
+                }
+            });
+
+            viewport.addEventListener("click", () => {
+                if (isPlaying) {
+                    video.pause();
+                    isPlaying = false;
+                    pauseOverlay.classList.add("visible");
+                } else {
+                    video.play();
+                    isPlaying = true;
+                    pauseOverlay.classList.remove("visible");
+                }
+            });
+
+            function goNext() {
+                if (currentIndex < VIDEOS.length - 1) {
+                    currentIndex++;
+                    loadVideo(currentIndex, "up");
+                }
+            }
+            function goPrev() {
+                if (currentIndex > 0) {
+                    currentIndex--;
+                    loadVideo(currentIndex, "down");
+                }
+            }
+
+            prevBtn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                goPrev();
+            });
+            nextBtn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                goNext();
+            });
+
+            document.addEventListener("keydown", (e) => {
+                if (e.key === "ArrowUp" || e.key === "k") goPrev();
+                if (e.key === "ArrowDown" || e.key === "j") goNext();
+                if (e.key === " ") {
+                    e.preventDefault();
+                    viewport.click();
+                }
+            });
+
+            let wheelCooldown = false;
+            document.addEventListener("wheel", (e) => {
+                if (wheelCooldown) return;
+                wheelCooldown = true;
+                setTimeout(() => (wheelCooldown = false), 600);
+                if (e.deltaY > 30) goNext();
+                else if (e.deltaY < -30) goPrev();
+            });
+
+            video.addEventListener("ended", () => {
+                if (currentIndex < VIDEOS.length - 1) goNext();
+                else {
+                    video.currentTime = 0;
+                    video.play();
+                }
+            });
+
+            // ====== Touch swipe for mobile ======
+            let touchStartY = 0;
+            let touchStartX = 0;
+            let isSwiping = false;
+
+            viewport.addEventListener(
+                "touchstart",
+                (e) => {
+                    touchStartY = e.touches[0].clientY;
+                    touchStartX = e.touches[0].clientX;
+                    isSwiping = false;
+                },
+                { passive: true },
+            );
+
+            viewport.addEventListener(
+                "touchmove",
+                (e) => {
+                    const dy = Math.abs(e.touches[0].clientY - touchStartY);
+                    const dx = Math.abs(e.touches[0].clientX - touchStartX);
+                    if (dy > 15 && dy > dx) {
+                        isSwiping = true;
+                    }
+                },
+                { passive: true },
+            );
+
+            viewport.addEventListener("touchend", (e) => {
+                if (!isSwiping) return; // let click handler deal with taps
+                const touchEndY = e.changedTouches[0].clientY;
+                const diff = touchStartY - touchEndY;
+                if (diff > 50)
+                    goNext(); // swipe up → next
+                else if (diff < -50) goPrev(); // swipe down → prev
+            });
+
+            // Prevent click-to-pause after a swipe
+            const origClick = viewport.onclick;
+            viewport.addEventListener(
+                "click",
+                (e) => {
+                    if (isSwiping) {
+                        e.stopImmediatePropagation();
+                        isSwiping = false;
+                        return;
+                    }
+                },
+                true,
+            ); // capture phase to run before the pause handler
+
+            // ====== Share button ======
+            const shareBtn = document.getElementById("shareBtn");
+            shareBtn.addEventListener("click", async (e) => {
+                e.stopPropagation();
+                const v = VIDEOS[currentIndex];
+                const shareUrl = `${window.location.origin}/reels?v=${v.slug}`;
+
+                if (navigator.share) {
+                    try {
+                        await navigator.share({
+                            title: v.title,
+                            text: v.subtitle || v.title,
+                            url: shareUrl,
+                        });
+                    } catch (err) {
+                        if (err.name !== "AbortError") console.error(err);
+                    }
+                } else {
+                    // Fallback: copy to clipboard
+                    try {
+                        await navigator.clipboard.writeText(shareUrl);
+                    } catch {
+                        const input = document.createElement("input");
+                        input.value = shareUrl;
+                        document.body.appendChild(input);
+                        input.select();
+                        document.execCommand("copy");
+                        input.remove();
+                    }
+                    // Flash the button label
+                    const label = shareBtn.querySelector(".label");
+                    if (label) {
+                        label.textContent = "Copied!";
+                        setTimeout(() => (label.textContent = "Share"), 1500);
+                    }
+                }
+            });
+
+            loadVideo(currentIndex);
+        </script>
+    </body>
+</html>

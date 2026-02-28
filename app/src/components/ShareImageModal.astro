@@ -1,0 +1,696 @@
+---
+/**
+ * ShareImageModal — Global modal with 3 format-aware templates.
+ * Posts with images → hero image backdrop. Audio → faux waveform.
+ * Playlists → real episode list. Quotes → large italic.
+ * Call: window.openShareImageModal(data)
+ *
+ * Branding text is configurable via i18n keys:
+ *   site.share_brand, site.share_url, site.share_filename_prefix
+ */
+import { t } from "../lib/i18n";
+
+const shareBrand = t("site.share_brand");
+const shareUrl = t("site.share_url");
+const shareFilenamePrefix = t("site.share_filename_prefix");
+---
+
+<div
+    class="si-overlay"
+    id="shareImageModal"
+    data-brand={shareBrand}
+    data-url={shareUrl}
+    data-prefix={shareFilenamePrefix}
+>
+    <div class="si-modal">
+        <div class="si-header">
+            <h3>Chia sẻ ảnh</h3>
+            <button type="button" class="si-close" aria-label="Close"
+                >&times;</button
+            >
+        </div>
+        <div class="si-templates">
+            <button type="button" class="si-tpl selected" data-tpl="classic">
+                <div class="si-preview si-classic" id="siPre1"></div>
+                <span class="si-tpl-name">Classic</span>
+            </button>
+            <button type="button" class="si-tpl" data-tpl="dark">
+                <div class="si-preview si-dark" id="siPre2"></div>
+                <span class="si-tpl-name">Dark</span>
+            </button>
+            <button type="button" class="si-tpl" data-tpl="gradient">
+                <div class="si-preview si-gradient" id="siPre3"></div>
+                <span class="si-tpl-name">Gradient</span>
+            </button>
+        </div>
+        <button type="button" class="si-download" id="siDownloadBtn">
+            <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                ><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"
+                ></path><polyline points="7 10 12 15 17 10"></polyline><line
+                    x1="12"
+                    y1="15"
+                    x2="12"
+                    y2="3"></line></svg
+            >
+            Tải ảnh xuống
+        </button>
+    </div>
+</div>
+
+<!-- Hidden 1080×1080 render targets (populated dynamically) -->
+<div
+    id="siRenderClassic"
+    class="fixed -left-[9999px] top-0 pointer-events-none"
+    style="width:1080px;height:1080px;"
+>
+</div>
+<div
+    id="siRenderDark"
+    class="fixed -left-[9999px] top-0 pointer-events-none"
+    style="width:1080px;height:1080px;"
+>
+</div>
+<div
+    id="siRenderGradient"
+    class="fixed -left-[9999px] top-0 pointer-events-none"
+    style="width:1080px;height:1080px;"
+>
+</div>
+
+<style>
+    .si-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+    }
+    .si-overlay.active {
+        opacity: 1;
+        pointer-events: auto;
+    }
+    .si-modal {
+        background: var(--color-card, #fff);
+        border-radius: 16px;
+        padding: 24px;
+        width: 90%;
+        max-width: 520px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+        transform: translateY(12px);
+        transition: transform 0.25s ease;
+    }
+    .si-overlay.active .si-modal {
+        transform: translateY(0);
+    }
+    .si-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    .si-header h3 {
+        font-size: 18px;
+        font-weight: 600;
+        color: var(--color-ink, #1a1a1a);
+        margin: 0;
+    }
+    .si-close {
+        width: 32px;
+        height: 32px;
+        border: none;
+        background: none;
+        font-size: 22px;
+        color: var(--color-soft, #888);
+        cursor: pointer;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.15s;
+    }
+    .si-close:hover {
+        background: var(--color-ink, #1a1a1a);
+        color: #fff;
+    }
+    .si-templates {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-bottom: 20px;
+    }
+    .si-tpl {
+        border: 2px solid var(--color-border, #e5e5e5);
+        border-radius: 12px;
+        padding: 4px;
+        cursor: pointer;
+        background: none;
+        transition: all 0.2s;
+    }
+    .si-tpl:hover {
+        border-color: var(--color-soft, #aaa);
+    }
+    .si-tpl.selected {
+        border-color: var(--color-accent, #1d4ed8);
+        box-shadow: 0 0 0 2px rgba(90, 79, 207, 0.2);
+    }
+    .si-tpl-name {
+        display: block;
+        text-align: center;
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--color-soft, #888);
+        padding: 6px 0 2px;
+    }
+    .si-tpl.selected .si-tpl-name {
+        color: var(--color-accent, #1d4ed8);
+    }
+    .si-preview {
+        aspect-ratio: 1;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    .si-classic {
+        background: linear-gradient(135deg, #fafaf8, #eff6ff);
+    }
+    .si-dark {
+        background: linear-gradient(160deg, #18181b, #1e1b2e);
+    }
+    .si-gradient {
+        background: linear-gradient(135deg, #1d4ed8, #3b82f6);
+    }
+    .si-download {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        padding: 12px;
+        border: none;
+        border-radius: 12px;
+        background: var(--color-accent, #1d4ed8);
+        color: #fff;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: opacity 0.2s;
+    }
+    .si-download:hover {
+        opacity: 0.9;
+    }
+    .si-download:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    .si-download svg {
+        width: 16px;
+        height: 16px;
+    }
+</style>
+
+<script>
+    interface ShareImageData {
+        slug: string;
+        title: string;
+        subtitle?: string;
+        format: string;
+        quoteText?: string;
+        attribution?: string;
+        tags?: string[];
+        heroImage?: string;
+        coverImage?: string;
+        duration?: number;
+        tracks?: { title: string; duration: number }[];
+        images?: string[];
+        rawImageUrl?: string; // For meme format - download original image directly
+    }
+
+    let currentData: ShareImageData | null = null;
+
+    function getFormatLabel(f: string): string {
+        const m: Record<string, string> = {
+            article: "Bài viết",
+            "short-video": "Short Video",
+            "video-embed": "Talk",
+            audio: "Podcast",
+            "audio-playlist": "Playlist",
+            gallery: "Gallery",
+            quote: "Quote",
+            joke: "Dad Joke",
+            meme: "Meme",
+        };
+        return m[f] || "Post";
+    }
+
+    function fmtDur(s: number): string {
+        const m = Math.floor(s / 60);
+        const sec = s % 60;
+        return `${m}:${sec.toString().padStart(2, "0")}`;
+    }
+
+    /** Normalize Vietnamese text to NFC (composed form) to fix diacritics rendering */
+    function normalizeText(text: string): string {
+        return text?.normalize?.("NFC") || text;
+    }
+
+    /** Generate a decorative SVG waveform (not real audio data) */
+    function waveformSvg(color: string, bgColor: string): string {
+        const bars = 60;
+        let rects = "";
+        for (let i = 0; i < bars; i++) {
+            // Pseudo-random heights using a simple formula for visual variety
+            const h =
+                20 +
+                Math.abs(
+                    Math.sin(i * 0.4) * 60 +
+                        Math.cos(i * 0.7) * 30 +
+                        Math.sin(i * 1.2) * 20,
+                );
+            const x = i * 15;
+            rects += `<rect x="${x}" y="${100 - h / 2}" width="10" height="${h}" rx="5" fill="${color}" opacity="0.7"/>`;
+        }
+        return `<svg viewBox="0 0 ${bars * 15} 100" style="width:100%;height:100%;" preserveAspectRatio="none">${rects}</svg>`;
+    }
+
+    interface Theme {
+        bg: string;
+        logo: string;
+        label: string;
+        title: string;
+        subtitle: string;
+        foot: string;
+        border: string;
+        tagBg: string;
+        tagText: string;
+        trackBg: string;
+        trackText: string;
+        trackNum: string;
+        waveColor: string;
+        waveBg: string;
+        playerBg: string;
+        playerBorder: string;
+    }
+
+    const themes: Record<string, Theme> = {
+        classic: {
+            bg: "linear-gradient(135deg,#fafaf8 0%,#eff6ff 100%)",
+            logo: "#1d4ed8",
+            label: "#1d4ed8",
+            title: "#1a1a1a",
+            subtitle: "#666",
+            foot: "#aaa",
+            border: "#e8e8e5",
+            tagBg: "#eff6ff",
+            tagText: "#1d4ed8",
+            trackBg: "#f5f3ff",
+            trackText: "#1a1a1a",
+            trackNum: "#1d4ed8",
+            waveColor: "#1d4ed8",
+            waveBg: "#eff6ff",
+            playerBg: "#eff6ff",
+            playerBorder: "#e0ddf5",
+        },
+        dark: {
+            bg: "linear-gradient(160deg,#18181b 0%,#27272a 50%,#1e1b2e 100%)",
+            logo: "#a78bfa",
+            label: "#a78bfa",
+            title: "#fafafa",
+            subtitle: "#a1a1aa",
+            foot: "#71717a",
+            border: "#3f3f46",
+            tagBg: "#2d2640",
+            tagText: "#a78bfa",
+            trackBg: "#27272a",
+            trackText: "#e4e4e7",
+            trackNum: "#a78bfa",
+            waveColor: "#a78bfa",
+            waveBg: "#27272a",
+            playerBg: "#27272a",
+            playerBorder: "#3f3f46",
+        },
+        gradient: {
+            bg: "linear-gradient(135deg,#1d4ed8 0%,#2563eb 50%,#3b82f6 100%)",
+            logo: "rgba(255,255,255,0.7)",
+            label: "rgba(255,255,255,0.7)",
+            title: "#fff",
+            subtitle: "rgba(255,255,255,0.7)",
+            foot: "rgba(255,255,255,0.5)",
+            border: "rgba(255,255,255,0.2)",
+            tagBg: "rgba(255,255,255,0.15)",
+            tagText: "#fff",
+            trackBg: "rgba(255,255,255,0.08)",
+            trackText: "#fff",
+            trackNum: "rgba(255,255,255,0.6)",
+            waveColor: "rgba(255,255,255,0.6)",
+            waveBg: "rgba(255,255,255,0.08)",
+            playerBg: "rgba(255,255,255,0.1)",
+            playerBorder: "rgba(255,255,255,0.15)",
+        },
+    };
+
+    // Central branding config — read from data attributes set by server
+    const siteConfig = {
+        brand:
+            document.getElementById("shareImageModal")?.dataset.brand ||
+            "A Realistic Dreamer",
+        url:
+            document.getElementById("shareImageModal")?.dataset.url ||
+            "arealisticdreamer.com",
+        prefix:
+            document.getElementById("shareImageModal")?.dataset.prefix ||
+            "arealisticdreamer",
+    };
+
+    function buildContent(data: ShareImageData, t: Theme): string {
+        const label = getFormatLabel(data.format);
+        const isQuote = data.format === "quote";
+        const isAudio = data.format === "audio";
+        const isPlaylist = data.format === "audio-playlist";
+        const isGallery = data.format === "gallery";
+        const hasImage = !!data.heroImage;
+        const tags = (data.tags || [])
+            .slice(0, 3)
+            .map(
+                (tg) =>
+                    `<span style="font-size:16px;padding:6px 16px;border-radius:100px;background:${t.tagBg};color:${t.tagText}">#${tg}</span>`,
+            )
+            .join("");
+
+        // Header: logo
+        let html = `<div style="font-family:Georgia,serif;font-size:28px;font-weight:600;color:${t.logo};margin-bottom:40px;">${siteConfig.brand}</div>`;
+
+        if (isQuote) {
+            // Large quote
+            html += `<div style="flex:1;display:flex;flex-direction:column;justify-content:center;">`;
+            html += `<div style="font-family:Georgia,serif;font-size:52px;font-weight:500;color:${t.label};line-height:1.3;font-style:italic;margin-bottom:32px;">"${data.quoteText}"</div>`;
+            if (data.attribution)
+                html += `<div style="font-size:24px;color:${t.subtitle}">— ${data.attribution}</div>`;
+            html += `</div>`;
+        } else if (isAudio) {
+            // Audio player card look
+            html += `<div style="font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:${t.label};margin-bottom:16px;">${label}</div>`;
+            // Player card
+            html += `<div style="background:${t.playerBg};border:1px solid ${t.playerBorder};border-radius:24px;padding:40px;margin-bottom:24px;">`;
+            // Cover + title row
+            if (data.heroImage) {
+                html += `<div style="display:flex;gap:24px;align-items:center;margin-bottom:32px;">`;
+                html += `<img src="${data.heroImage}" style="width:120px;height:120px;border-radius:16px;object-fit:cover;" crossorigin="anonymous"/>`;
+                html += `<div style="flex:1;min-width:0;">`;
+            } else {
+                html += `<div style="margin-bottom:32px;">`;
+            }
+            html += `<div style="font-family:Georgia,serif;font-size:40px;font-weight:700;color:${t.title};line-height:1.2;margin-bottom:8px;">${data.title}</div>`;
+            if (data.subtitle)
+                html += `<div style="font-size:22px;color:${t.subtitle};line-height:1.3;">${data.subtitle}</div>`;
+            if (data.duration)
+                html += `<div style="font-size:18px;color:${t.foot};margin-top:8px;">${fmtDur(data.duration)}</div>`;
+            html += `</div>`;
+            if (data.heroImage) html += `</div>`;
+            // Waveform
+            html += `<div style="height:80px;border-radius:12px;overflow:hidden;">${waveformSvg(t.waveColor, t.waveBg)}</div>`;
+            // Progress bar
+            html += `<div style="margin-top:16px;height:6px;border-radius:3px;background:${t.waveBg};overflow:hidden;"><div style="width:35%;height:100%;background:${t.waveColor};border-radius:3px;"></div></div>`;
+            html += `</div>`;
+        } else if (isPlaylist) {
+            // Playlist with real episode names
+            html += `<div style="font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:${t.label};margin-bottom:16px;">${label}</div>`;
+            html += `<div style="font-family:Georgia,serif;font-size:44px;font-weight:700;color:${t.title};line-height:1.15;margin-bottom:8px;">${data.title}</div>`;
+            if (data.subtitle)
+                html += `<div style="font-size:22px;color:${t.subtitle};line-height:1.3;margin-bottom:24px;">${data.subtitle}</div>`;
+            // Track list
+            const tracks = (data.tracks || []).slice(0, 6);
+            if (tracks.length > 0) {
+                html += `<div style="background:${t.playerBg};border:1px solid ${t.playerBorder};border-radius:16px;overflow:hidden;">`;
+                tracks.forEach((tr, i) => {
+                    const borderTop =
+                        i > 0 ? `border-top:1px solid ${t.playerBorder};` : "";
+                    html += `<div style="${borderTop}display:flex;align-items:center;padding:16px 20px;gap:16px;">`;
+                    html += `<span style="font-size:16px;font-weight:600;color:${t.trackNum};min-width:24px;">${i + 1}</span>`;
+                    html += `<span style="font-size:20px;font-weight:500;color:${t.trackText};flex:1;">${tr.title}</span>`;
+                    html += `<span style="font-size:16px;color:${t.foot}">${fmtDur(tr.duration)}</span>`;
+                    html += `</div>`;
+                });
+                html += `</div>`;
+                if ((data.tracks || []).length > 6) {
+                    html += `<div style="font-size:16px;color:${t.foot};margin-top:12px;">+${(data.tracks || []).length - 6} more tracks</div>`;
+                }
+            }
+        } else if (isGallery && data.images && data.images.length > 0) {
+            // Gallery grid with actual images
+            html += `<div style="font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:${t.label};margin-bottom:16px;">${label}</div>`;
+            html += `<div style="font-family:Georgia,serif;font-size:44px;font-weight:700;color:${t.title};line-height:1.15;margin-bottom:24px;">${data.title}</div>`;
+            const imgs = data.images.slice(0, 4);
+            html += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;">`;
+            imgs.forEach((url) => {
+                html += `<div style="border-radius:12px;overflow:hidden;aspect-ratio:1;"><img src="${url}" style="width:100%;height:100%;object-fit:cover;" crossorigin="anonymous"/></div>`;
+            });
+            html += `</div>`;
+        } else if (hasImage) {
+            // Article / video with hero image
+            html += `<div style="font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:${t.label};margin-bottom:16px;">${label}</div>`;
+            html += `<div style="font-family:Georgia,serif;font-size:52px;font-weight:700;color:${t.title};line-height:1.15;letter-spacing:-0.02em;margin-bottom:20px;">${data.title}</div>`;
+            if (data.subtitle)
+                html += `<div style="font-size:26px;color:${t.subtitle};line-height:1.4;margin-bottom:24px;">${data.subtitle}</div>`;
+            html += `<div style="border-radius:16px;overflow:hidden;aspect-ratio:16/9;margin-bottom:24px;"><img src="${data.heroImage}" style="width:100%;height:100%;object-fit:cover;" crossorigin="anonymous"/></div>`;
+        } else {
+            // Default text layout
+            html += `<div style="flex:1;display:flex;flex-direction:column;justify-content:center;">`;
+            html += `<div style="font-size:14px;font-weight:600;text-transform:uppercase;letter-spacing:0.1em;color:${t.label};margin-bottom:16px;">${label}</div>`;
+            html += `<div style="font-family:Georgia,serif;font-size:56px;font-weight:700;color:${t.title};line-height:1.15;letter-spacing:-0.02em;margin-bottom:24px;">${data.title}</div>`;
+            if (data.subtitle)
+                html += `<div style="font-size:28px;color:${t.subtitle};line-height:1.4;">${data.subtitle}</div>`;
+            html += `</div>`;
+        }
+
+        // Footer
+        html += `<div style="margin-top:auto;padding-top:40px;display:flex;justify-content:space-between;align-items:center;border-top:2px solid ${t.border};">`;
+        html += `<div style="font-size:20px;color:${t.foot};">${siteConfig.url}</div>`;
+        html += `<div style="display:flex;gap:8px;">${tags}</div>`;
+        html += `</div>`;
+
+        return html;
+    }
+
+    function populateTemplates(data: ShareImageData) {
+        // Normalize Vietnamese text to NFC to fix diacritics rendering
+        const normalizedData: ShareImageData = {
+            ...data,
+            title: normalizeText(data.title),
+            subtitle: data.subtitle ? normalizeText(data.subtitle) : undefined,
+            quoteText: data.quoteText ? normalizeText(data.quoteText) : undefined,
+            attribution: data.attribution ? normalizeText(data.attribution) : undefined,
+            tracks: data.tracks?.map(t => ({ ...t, title: normalizeText(t.title) })),
+        };
+
+        for (const [name, theme] of Object.entries(themes)) {
+            const content = buildContent(normalizedData, theme);
+            const renderId = `siRender${name.charAt(0).toUpperCase() + name.slice(1)}`;
+            const el = document.getElementById(renderId)!;
+            el.innerHTML = `<div style="width:1080px;height:1080px;background:${theme.bg};padding:72px;display:flex;flex-direction:column;font-family:Inter,sans-serif;">${content}</div>`;
+        }
+
+        // Mini previews — simplified representations
+        const label = getFormatLabel(data.format);
+        const isQuote = data.format === "quote";
+        const preTitle = isQuote ? `"${data.quoteText || ""}"` : data.title;
+
+        ["siPre1", "siPre2", "siPre3"].forEach((id, i) => {
+            const preEl = document.getElementById(id)!;
+            const t = Object.values(themes)[i];
+            let miniHtml = `<div style="padding:10px;display:flex;flex-direction:column;height:100%;justify-content:center;">`;
+            miniHtml += `<div style="font-size:7px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:${t.label};margin-bottom:3px;">${label}</div>`;
+            miniHtml += `<div style="font-family:Georgia,serif;font-weight:${isQuote ? "500" : "700"};font-size:${isQuote ? "9" : "10"}px;line-height:1.3;color:${isQuote ? t.label : t.title};${isQuote ? "font-style:italic;" : ""}display:-webkit-box;-webkit-line-clamp:${isQuote ? "4" : "2"};-webkit-box-orient:vertical;overflow:hidden;">${preTitle}</div>`;
+            if (data.format === "audio") {
+                miniHtml += `<div style="margin-top:6px;height:16px;border-radius:3px;overflow:hidden;opacity:0.7;">${waveformSvg(t.waveColor, t.waveBg)}</div>`;
+            } else if (data.format === "audio-playlist") {
+                const tr = (data.tracks || []).slice(0, 5);
+                tr.forEach((track, j) => {
+                    miniHtml += `<div style="font-size:5px;color:${t.subtitle};margin-top:${j === 0 ? 4 : 1}px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${j + 1}. ${track.title}</div>`;
+                });
+            } else if (
+                data.format === "gallery" &&
+                data.images &&
+                data.images.length > 0
+            ) {
+                const imgs = data.images.slice(0, 4);
+                miniHtml += `<div style="display:grid;grid-template-columns:1fr 1fr;gap:2px;margin-top:4px;">`;
+                imgs.forEach((url) => {
+                    miniHtml += `<div style="border-radius:2px;overflow:hidden;aspect-ratio:1;"><img src="${url}" style="width:100%;height:100%;object-fit:cover;" crossorigin="anonymous"/></div>`;
+                });
+                miniHtml += `</div>`;
+            } else if (data.heroImage && !isQuote) {
+                miniHtml += `<div style="margin-top:4px;border-radius:3px;overflow:hidden;aspect-ratio:16/9;"><img src="${data.heroImage}" style="width:100%;height:100%;object-fit:cover;" crossorigin="anonymous"/></div>`;
+            }
+            miniHtml += `<div style="margin-top:auto;padding-top:4px;font-size:5px;color:${t.foot};">${siteConfig.url}</div>`;
+            miniHtml += `</div>`;
+            preEl.innerHTML = miniHtml;
+        });
+    }
+
+    let _siAbort: AbortController | null = null;
+
+    function initShareImageModal() {
+        // Abort previous listeners if any
+        _siAbort?.abort();
+        _siAbort = new AbortController();
+        const sig = { signal: _siAbort.signal };
+
+        const overlay = document.getElementById("shareImageModal");
+        const downloadBtn = document.getElementById("siDownloadBtn");
+        if (!overlay || !downloadBtn) return;
+
+        overlay.querySelectorAll(".si-tpl").forEach((btn) => {
+            btn.addEventListener(
+                "click",
+                () => {
+                    overlay
+                        .querySelectorAll(".si-tpl")
+                        .forEach((b) => b.classList.remove("selected"));
+                    btn.classList.add("selected");
+                },
+                sig,
+            );
+        });
+
+        overlay
+            .querySelector(".si-close")
+            ?.addEventListener(
+                "click",
+                () => overlay.classList.remove("active"),
+                sig,
+            );
+        overlay.addEventListener(
+            "click",
+            (e) => {
+                if (e.target === overlay) overlay.classList.remove("active");
+            },
+            sig,
+        );
+
+        downloadBtn.addEventListener(
+            "click",
+            async () => {
+                if (!currentData) return;
+
+                const btnEl = downloadBtn as HTMLButtonElement;
+                btnEl.innerHTML =
+                    '<span style="opacity:0.7">Downloading...</span>';
+                btnEl.disabled = true;
+
+                try {
+                    // Meme format - download original image directly
+                    if (currentData.format === "meme" && currentData.rawImageUrl) {
+                        const response = await fetch(currentData.rawImageUrl);
+                        const blob = await response.blob();
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement("a");
+                        a.href = url;
+                        a.download = currentData.rawImageUrl.split("/").pop() || "meme.jpg";
+                        document.body.appendChild(a);
+                        a.click();
+                        document.body.removeChild(a);
+                        URL.revokeObjectURL(url);
+                        overlay.classList.remove("active");
+                        return;
+                    }
+
+                    // Other formats - render template to image
+                    const selectedTpl = overlay.querySelector(
+                        ".si-tpl.selected",
+                    ) as HTMLElement;
+                    const tplName = selectedTpl?.dataset.tpl || "classic";
+                    const renderId = `siRender${tplName.charAt(0).toUpperCase() + tplName.slice(1)}`;
+                    const renderEl = document.getElementById(renderId);
+                    if (!renderEl || !renderEl.firstElementChild) return;
+
+                    const { snapdom } = await import("@zumer/snapdom");
+                    const result = await snapdom(
+                        renderEl.firstElementChild as HTMLElement,
+                        { scale: 1 },
+                    );
+                    await result.download({
+                        type: "png",
+                        filename: `${siteConfig.prefix}-${currentData.slug}`,
+                    });
+                    overlay.classList.remove("active");
+                } catch (e) {
+                    console.error("Share image error:", e);
+                } finally {
+                    btnEl.innerHTML =
+                        '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Tải ảnh xuống';
+                    btnEl.disabled = false;
+                }
+            },
+            sig,
+        );
+
+        (window as any).openShareImageModal = (data: ShareImageData) => {
+            currentData = data;
+            const templatesEl = overlay.querySelector(".si-templates") as HTMLElement;
+
+            // Meme format - show single image preview, hide template selector
+            if (data.format === "meme" && data.rawImageUrl) {
+                templatesEl.innerHTML = `
+                    <div style="grid-column: 1 / -1; display: flex; justify-content: center;">
+                        <div style="border-radius: 12px; overflow: hidden; max-width: 300px;">
+                            <img src="${data.rawImageUrl}" style="width: 100%; height: auto; display: block;" />
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Restore template buttons if they were replaced
+                if (!templatesEl.querySelector(".si-tpl")) {
+                    templatesEl.innerHTML = `
+                        <button type="button" class="si-tpl selected" data-tpl="classic">
+                            <div class="si-preview si-classic" id="siPre1"></div>
+                            <span class="si-tpl-name">Classic</span>
+                        </button>
+                        <button type="button" class="si-tpl" data-tpl="dark">
+                            <div class="si-preview si-dark" id="siPre2"></div>
+                            <span class="si-tpl-name">Dark</span>
+                        </button>
+                        <button type="button" class="si-tpl" data-tpl="gradient">
+                            <div class="si-preview si-gradient" id="siPre3"></div>
+                            <span class="si-tpl-name">Gradient</span>
+                        </button>
+                    `;
+                    // Re-bind template click handlers
+                    templatesEl.querySelectorAll(".si-tpl").forEach((btn) => {
+                        btn.addEventListener("click", () => {
+                            templatesEl
+                                .querySelectorAll(".si-tpl")
+                                .forEach((b) => b.classList.remove("selected"));
+                            btn.classList.add("selected");
+                        });
+                    });
+                }
+                populateTemplates(data);
+                overlay
+                    .querySelectorAll(".si-tpl")
+                    .forEach((b) => b.classList.remove("selected"));
+                overlay.querySelector(".si-tpl")?.classList.add("selected");
+            }
+            overlay.classList.add("active");
+        };
+    }
+
+    // Init immediately + on every View Transition
+    initShareImageModal();
+    document.addEventListener("astro:page-load", () => {
+        initShareImageModal();
+    });
+</script>

@@ -1,0 +1,280 @@
+---
+/**
+ * FeedCard — Router component that renders the right card by post format.
+ * Includes share button and anchor ID for deep-linking.
+ */
+import type { Post } from "../../lib/types";
+import FeedCardArticle from "./FeedCardArticle.astro";
+import FeedCardShortVideo from "./FeedCardShortVideo.astro";
+import FeedCardVideoEmbed from "./FeedCardVideoEmbed.astro";
+import FeedCardAudio from "./FeedCardAudio.astro";
+import FeedCardAudioPlaylist from "./FeedCardAudioPlaylist.astro";
+import FeedCardQuote from "./FeedCardQuote.astro";
+import FeedCardGallery from "./FeedCardGallery.astro";
+
+interface Props {
+    post: Post;
+}
+
+const { post } = Astro.props;
+---
+
+<div class="feed-card-wrapper" id={`post-${post.slug}`}>
+    {post.format === "article" && <FeedCardArticle post={post} />}
+    {post.format === "short-video" && <FeedCardShortVideo post={post} />}
+    {post.format === "video-embed" && <FeedCardVideoEmbed post={post} />}
+    {post.format === "audio" && <FeedCardAudio post={post} />}
+    {post.format === "audio-playlist" && <FeedCardAudioPlaylist post={post} />}
+    {post.format === "quote" && <FeedCardQuote post={post} />}
+    {post.format === "gallery" && <FeedCardGallery post={post} />}
+
+    <div class="card-actions">
+        <!-- Image share -->
+        <button
+            type="button"
+            class="share-img-btn"
+            data-post={JSON.stringify({
+                slug: post.slug,
+                title: post.title,
+                subtitle: post.subtitle || "",
+                format: post.format,
+                quoteText: (post as any).quoteText || "",
+                attribution: (post as any).attribution || "",
+                tags: post.tags || [],
+                heroImage:
+                    (post as any).heroImage ||
+                    (post as any).coverImage ||
+                    post.thumbnail ||
+                    "",
+                duration: (post as any).duration || 0,
+                tracks: ((post as any).tracks || []).map((t: any) => ({
+                    title: t.title,
+                    duration: t.duration,
+                })),
+                images: ((post as any).images || [])
+                    .slice(0, 4)
+                    .map((img: any) => img.url),
+            })}
+            aria-label={`Share ${post.title} as image`}
+            title="Share as image"
+        >
+            <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+            >
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                <polyline points="21 15 16 10 5 21"></polyline>
+            </svg>
+        </button>
+        <!-- Link copy -->
+        <button
+            type="button"
+            class="share-btn"
+            data-slug={post.slug}
+            aria-label={`Share ${post.title}`}
+            title="Copy link"
+        >
+            <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+            >
+                <circle cx="18" cy="5" r="3"></circle>
+                <circle cx="6" cy="12" r="3"></circle>
+                <circle cx="18" cy="19" r="3"></circle>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+            </svg>
+            <span class="share-toast">Link copied!</span>
+        </button>
+    </div>
+</div>
+
+<style is:global>
+    .feed-card-wrapper {
+        position: relative;
+    }
+
+    .card-actions {
+        position: absolute;
+        bottom: 8px;
+        right: 8px;
+        z-index: 10;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+        display: flex;
+        gap: 4px;
+    }
+
+    .feed-card-wrapper:hover .card-actions {
+        opacity: 1;
+    }
+
+    /* Always show share actions on touch / mobile devices */
+    @media (hover: none), (max-width: 768px) {
+        .card-actions {
+            opacity: 1;
+        }
+    }
+
+    .share-btn {
+        position: relative;
+        width: 32px;
+        height: 32px;
+        border: none;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        color: var(--color-ink, #1a1a1a);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        transition: all 0.2s ease;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    }
+
+    .share-btn:hover {
+        background: #fff;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+        transform: scale(1.05);
+    }
+
+    .share-btn:active {
+        transform: scale(0.95);
+    }
+
+    .share-btn svg {
+        width: 15px;
+        height: 15px;
+    }
+
+    .share-img-btn {
+        width: 32px;
+        height: 32px;
+        border: none;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        color: var(--color-ink, #1a1a1a);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        transition: all 0.2s ease;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    }
+    .share-img-btn:hover {
+        background: #fff;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+        transform: scale(1.05);
+    }
+    .share-img-btn:active {
+        transform: scale(0.95);
+    }
+    .share-img-btn svg {
+        width: 15px;
+        height: 15px;
+    }
+
+    .share-toast {
+        position: absolute;
+        right: 100%;
+        top: 50%;
+        transform: translateY(-50%);
+        margin-right: 8px;
+        background: var(--color-ink, #1a1a1a);
+        color: #fff;
+        font-size: 11px;
+        font-weight: 500;
+        white-space: nowrap;
+        padding: 4px 10px;
+        border-radius: 6px;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+    }
+
+    .share-toast.visible {
+        opacity: 1;
+    }
+</style>
+
+<script>
+    document.addEventListener("astro:page-load", () => {
+        document.querySelectorAll(".share-btn").forEach((btn) => {
+            btn.addEventListener("click", async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const slug = (btn as HTMLElement).dataset.slug!;
+                const url = `${window.location.origin}/feed#post-${slug}`;
+
+                try {
+                    await navigator.clipboard.writeText(url);
+                } catch {
+                    const input = document.createElement("input");
+                    input.value = url;
+                    document.body.appendChild(input);
+                    input.select();
+                    document.execCommand("copy");
+                    input.remove();
+                }
+
+                const toast = btn.querySelector(".share-toast");
+                toast?.classList.add("visible");
+                setTimeout(() => toast?.classList.remove("visible"), 1500);
+            });
+        });
+
+        // Image share buttons
+        document.querySelectorAll(".share-img-btn").forEach((btn) => {
+            btn.addEventListener("click", (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                try {
+                    const data = JSON.parse(
+                        (btn as HTMLElement).dataset.post || "{}",
+                    );
+                    if ((window as any).openShareImageModal) {
+                        (window as any).openShareImageModal(data);
+                    }
+                } catch (err) {
+                    console.error("Share image error:", err);
+                }
+            });
+        });
+
+        // On page load, scroll to the anchored post if hash is present
+        const hash = window.location.hash;
+        if (hash && hash.startsWith("#post-")) {
+            const target = document.getElementById(hash.slice(1));
+            if (target) {
+                setTimeout(() => {
+                    target.scrollIntoView({
+                        behavior: "smooth",
+                        block: "center",
+                    });
+                    target.style.outline =
+                        "2px solid var(--color-accent, #1d4ed8)";
+                    target.style.outlineOffset = "4px";
+                    target.style.borderRadius = "12px";
+                    setTimeout(() => {
+                        target.style.outline = "none";
+                    }, 2000);
+                }, 300);
+            }
+        }
+    });
+</script>

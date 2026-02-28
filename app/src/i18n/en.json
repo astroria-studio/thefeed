@@ -1,0 +1,120 @@
+{
+  "site": {
+    "name": "TheFeed",
+    "tagline": "Your content feed, your way",
+    "description": "A modern content platform for indie creators and makers",
+    "share_brand": "TheFeed",
+    "share_url": "your-domain.com",
+    "share_filename_prefix": "thefeed"
+  },
+  "nav": {
+    "explore": "Explore",
+    "match": "Find Pattern",
+    "submit": "Submit",
+    "search": "Search"
+  },
+  "home": {
+    "hero": "Your content feed, beautifully organized.",
+    "subtitle": "Share your journey, insights, and discoveries with a modern content platform built for creators.",
+    "cta_explore": "Browse Posts",
+    "cta_match": "Take Quiz"
+  },
+  "explore": {
+    "title": "Posts",
+    "subtitle": "Real workflows, real processes — including the failures.",
+    "filter_all": "All"
+  },
+  "quiz": {
+    "title": "Find your best content pattern",
+    "subtitle": "5 questions. Match with real cases from builders who've done it.",
+    "q1": "What's your technical level?",
+    "q1_opt1": "No code",
+    "q1_opt1_desc": "Just use tools, don't build",
+    "q1_opt2": "Low-code OK",
+    "q1_opt2_desc": "Zapier, Notion, Airtable, basic scripts",
+    "q1_opt3": "Can code",
+    "q1_opt3_desc": "Build apps with AI assistance (Cursor, Claude Code)",
+    "q1_opt4": "Developer",
+    "q1_opt4_desc": "Ship production code, integrate APIs, infra",
+    "q2": "Where is your expertise?",
+    "q2_hint": "Select up to 3",
+    "q2_marketing": "Marketing & Content",
+    "q2_education": "Education & Training",
+    "q2_ecommerce": "E-commerce & Retail",
+    "q2_finance": "Finance & Accounting",
+    "q2_health": "Health & Wellness",
+    "q2_saas": "Software & SaaS",
+    "q2_services": "Agency & Freelance",
+    "q2_other": "Other / Generalist",
+    "q3": "How much can you invest?",
+    "q3_opt1": "Just time",
+    "q3_opt1_desc": "Free tools, side project",
+    "q3_opt2": "Under $50/month",
+    "q3_opt2_desc": "Basic API costs, subscriptions",
+    "q3_opt3": "$50-200/month",
+    "q3_opt3_desc": "Serious side project or early stage startup",
+    "q3_opt4": "$200+/month or full-time",
+    "q3_opt4_desc": "All in",
+    "q4": "Who do you want to serve?",
+    "q4_opt1": "Individual consumers, local",
+    "q4_opt1_desc": "Local customers",
+    "q4_opt2": "Individual consumers, global",
+    "q4_opt2_desc": "English, worldwide",
+    "q4_opt3": "Small businesses",
+    "q4_opt3_desc": "SMB, solopreneurs, freelancers",
+    "q4_opt4": "Enterprise",
+    "q4_opt4_desc": "Large companies, long sales cycle",
+    "q5": "What's your real goal?",
+    "q5_opt1": "Quick revenue",
+    "q5_opt1_desc": "Earn first dollar in weeks, validate fast",
+    "q5_opt2": "Build a real product",
+    "q5_opt2_desc": "Ready to invest months building something sustainable",
+    "q5_opt3": "Amplify current work",
+    "q5_opt3_desc": "Use AI to 10x your existing job or business",
+    "q5_opt4": "Learn and explore",
+    "q5_opt4_desc": "Finding direction, experimenting first",
+    "continue": "Continue",
+    "back": "Back",
+    "see_results": "See Results"
+  },
+  "results": {
+    "title": "Here's what fits you",
+    "subtitle": "Ranked by match level with your profile.",
+    "strong": "Strong fit",
+    "possible": "Possible",
+    "stretch": "Stretch goal",
+    "why_fits": "Why it fits:",
+    "share_prompt": "Know someone exploring this?",
+    "share": "Share this quiz",
+    "retake": "Retake quiz"
+  },
+  "case": {
+    "tonys_take": "My Take",
+    "what_works": "What Works",
+    "what_different": "What I'd Do Different",
+    "pattern": "Pattern",
+    "revenue": "Revenue",
+    "verified": "Verified",
+    "market": "Market",
+    "year": "Year"
+  },
+  "verification": {
+    "unverified": "Unverified",
+    "partial": "Partially verified",
+    "verified": "Verified",
+    "tonys-pick": "Editor's Pick"
+  },
+  "stage": {
+    "idea": "Idea",
+    "building": "Building",
+    "launched": "Launched",
+    "profitable": "Profitable",
+    "active": "Active"
+  },
+  "caseType": {
+    "business": "Business",
+    "use-case": "Use Case",
+    "workflow": "Workflow",
+    "lifestyle": "Lifestyle"
+  }
+}

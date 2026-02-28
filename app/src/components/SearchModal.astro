@@ -1,0 +1,181 @@
+---
+import { Search as SearchIcon, X } from "@lucide/astro";
+import { t } from "../lib/i18n";
+---
+
+<div id="search-modal-container">
+    <dialog
+        id="search-dialog"
+        class="backdrop:bg-black/50 backdrop:backdrop-blur-sm fixed top-0 w-full max-w-2xl mx-auto mt-20 p-0 border border-border rounded-2xl shadow-2xl bg-bg open:animate-in open:fade-in open:slide-in-from-top-4"
+    >
+        <div class="p-4 border-b border-border flex gap-3 items-center">
+            <SearchIcon class="w-5 h-5 text-faint shrink-0" />
+            <input
+                type="text"
+                id="search-input"
+                placeholder={t("nav.search") || "Tìm kiếm bài viết..."}
+                class="flex-1 bg-transparent border-none outline-none text-ink placeholder:text-faint text-lg"
+                autocomplete="off"
+            />
+            <button
+                id="close-search"
+                class="text-soft hover:text-ink p-1 shrink-0 rounded-full hover:bg-ink/5 transition-colors"
+            >
+                <X class="w-5 h-5" />
+            </button>
+        </div>
+
+        <div class="p-2 max-h-[60vh] overflow-y-auto" id="search-results">
+            <!-- Results will be injected here -->
+            <div class="p-4 text-center text-soft text-sm" id="search-status">
+                Bắt đầu gõ để tìm kiếm...
+            </div>
+        </div>
+    </dialog>
+</div>
+
+<script>
+    interface SearchResult {
+        slug: string;
+        title: string;
+        subtitle: string;
+        format: string;
+        date: string;
+        tags: string[];
+    }
+
+    document.addEventListener("astro:page-load", () => {
+        const dialog = document.getElementById(
+            "search-dialog",
+        ) as HTMLDialogElement;
+        const trigger = document.getElementById("search-trigger");
+        const closeBtn = document.getElementById("close-search");
+        const input = document.getElementById(
+            "search-input",
+        ) as HTMLInputElement;
+        const resultsContainer = document.getElementById("search-results");
+        const statusContainer = document.getElementById("search-status");
+
+        if (
+            !dialog ||
+            !trigger ||
+            !closeBtn ||
+            !input ||
+            !resultsContainer ||
+            !statusContainer
+        )
+            return;
+
+        let searchIndex: SearchResult[] | null = null;
+        let isLoading = false;
+
+        const loadSearchIndex = async () => {
+            if (searchIndex || isLoading) return;
+            isLoading = true;
+            try {
+                const res = await fetch("/api/search.json");
+                searchIndex = await res.json();
+                isLoading = false;
+            } catch (e) {
+                console.error("Failed to load search index", e);
+                isLoading = false;
+            }
+        };
+
+        const renderResults = (query: string) => {
+            if (!query.trim()) {
+                resultsContainer.innerHTML = "";
+                resultsContainer.appendChild(statusContainer);
+                statusContainer.textContent = "Bắt đầu gõ để tìm kiếm...";
+                return;
+            }
+
+            if (!searchIndex) {
+                resultsContainer.innerHTML = "";
+                resultsContainer.appendChild(statusContainer);
+                statusContainer.textContent = "Đang tải dữ liệu...";
+                loadSearchIndex().then(() => renderResults(query));
+                return;
+            }
+
+            const normalizedQuery = query.toLowerCase().trim();
+            const results = searchIndex.filter((item) => {
+                return (
+                    item.title.toLowerCase().includes(normalizedQuery) ||
+                    item.subtitle.toLowerCase().includes(normalizedQuery) ||
+                    item.tags.some((tag) =>
+                        tag.toLowerCase().includes(normalizedQuery),
+                    )
+                );
+            });
+
+            if (results.length === 0) {
+                resultsContainer.innerHTML = "";
+                resultsContainer.appendChild(statusContainer);
+                statusContainer.textContent = "Không tìm thấy kết quả nào.";
+                return;
+            }
+
+            resultsContainer.innerHTML = "";
+            results.forEach((result) => {
+                const a = document.createElement("a");
+                a.href = `/${result.slug}`;
+                a.className =
+                    "flex gap-4 p-3 hover:bg-ink/5 rounded-xl transition-colors group";
+
+                const iconWrap = document.createElement("div");
+                iconWrap.className =
+                    "w-10 h-10 shrink-0 rounded-lg bg-border-light flex items-center justify-center text-soft group-hover:text-accent group-hover:bg-accent-soft transition-colors mt-1";
+                // Simple SVG icon for articles
+                iconWrap.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/></svg>`;
+
+                const textWrap = document.createElement("div");
+                const title = document.createElement("div");
+                title.className =
+                    "font-medium text-ink group-hover:text-accent transition-colors";
+                title.textContent = result.title;
+
+                const subtitle = document.createElement("div");
+                subtitle.className = "text-sm text-faint line-clamp-1 mt-0.5";
+                subtitle.textContent = result.subtitle;
+
+                textWrap.appendChild(title);
+                textWrap.appendChild(subtitle);
+
+                a.appendChild(iconWrap);
+                a.appendChild(textWrap);
+                resultsContainer.appendChild(a);
+            });
+        };
+
+        input.addEventListener("input", (e) => {
+            renderResults((e.target as HTMLInputElement).value);
+        });
+
+        trigger.addEventListener("click", () => {
+            dialog.showModal();
+            loadSearchIndex();
+            setTimeout(() => input.focus(), 50);
+        });
+
+        closeBtn.addEventListener("click", () => {
+            dialog.close();
+            input.value = "";
+            renderResults("");
+        });
+
+        dialog.addEventListener("click", (e) => {
+            const dialogDimensions = dialog.getBoundingClientRect();
+            if (
+                e.clientX < dialogDimensions.left ||
+                e.clientX > dialogDimensions.right ||
+                e.clientY < dialogDimensions.top ||
+                e.clientY > dialogDimensions.bottom
+            ) {
+                dialog.close();
+                input.value = "";
+                renderResults("");
+            }
+        });
+    });
+</script>

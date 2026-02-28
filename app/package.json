@@ -1,0 +1,39 @@
+{
+  "name": "viblab",
+  "type": "module",
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "EDITION=global astro dev",
+    "dev:vn": "EDITION=vn astro dev",
+    "build": "EDITION=global astro build",
+    "build:vn": "EDITION=vn astro build",
+    "preview": "astro preview",
+    "deploy": "npm run build && wrangler deploy",
+    "deploy:vn": "npm run build:vn && wrangler deploy --config wrangler.vn.jsonc",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/cloudflare": "^12.6.12",
+    "@astrojs/mdx": "^4.3.13",
+    "@astrojs/rss": "^4.0.15",
+    "@astrojs/sitemap": "^3.7.0",
+    "@lucide/astro": "^0.575.0",
+    "@tailwindcss/vite": "^4.1.18",
+    "@zumer/snapdom": "^2.0.2",
+    "astro": "^5.17.1",
+    "astro-capo": "^0.0.1",
+    "astro-imagetools": "^0.9.0",
+    "astro-robots-txt": "^1.0.0",
+    "astro-seo": "^1.1.0",
+    "astro-seo-schema": "^5.2.0",
+    "glightbox": "^3.3.1",
+    "marked": "^17.0.3",
+    "medium-zoom": "^1.1.0",
+    "tailwindcss": "^4.1.18",
+    "wavesurfer.js": "^7.12.1",
+    "workers-og": "^0.0.27"
+  },
+  "devDependencies": {
+    "wrangler": "^4.67.0"
+  }
+}

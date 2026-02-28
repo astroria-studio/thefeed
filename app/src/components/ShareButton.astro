@@ -1,0 +1,413 @@
+---
+/**
+ * ShareButton — Share actions for detail pages.
+ * Includes: Copy page dropdown with AI options, Share as Image.
+ */
+import type { Post } from "../lib/types";
+
+interface Props {
+    post: Post;
+}
+
+const { post } = Astro.props;
+const postData = JSON.stringify({
+    slug: post.slug,
+    title: post.title,
+    subtitle: post.subtitle || "",
+    format: post.format,
+    quoteText: (post as any).quoteText || "",
+    attribution: (post as any).attribution || "",
+    tags: post.tags || [],
+    heroImage:
+        (post as any).heroImage ||
+        (post as any).coverImage ||
+        post.thumbnail ||
+        "",
+    duration: (post as any).duration || 0,
+    tracks: ((post as any).tracks || []).map((t: any) => ({
+        title: t.title,
+        duration: t.duration,
+    })),
+    images: ((post as any).images || []).slice(0, 4).map((img: any) => img.url),
+});
+---
+
+<div class="share-actions">
+    <!-- Copy page dropdown -->
+    <div class="copy-dropdown">
+        <button
+            type="button"
+            class="share-copy-btn share-action-btn"
+            data-slug={post.slug}
+            aria-label="Copy link"
+            title="Copy link"
+        >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            <span class="share-label copy-label">Sao chép</span>
+        </button>
+        <button type="button" class="dropdown-toggle" aria-label="More copy options">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+        </button>
+
+        <div class="dropdown-menu">
+            <button type="button" class="dropdown-item" data-action="copy-link" data-slug={post.slug}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path>
+                    <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+                </svg>
+                <div class="dropdown-item-text">
+                    <span class="dropdown-item-title">Sao chép liên kết</span>
+                    <span class="dropdown-item-desc">Sao chép URL trang hiện tại</span>
+                </div>
+            </button>
+
+            <button type="button" class="dropdown-item" data-action="view-markdown" data-slug={post.slug}>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                    <polyline points="14 2 14 8 20 8"></polyline>
+                    <line x1="16" y1="13" x2="8" y2="13"></line>
+                    <line x1="16" y1="17" x2="8" y2="17"></line>
+                    <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                <div class="dropdown-item-text">
+                    <span class="dropdown-item-title">Xem dạng Markdown</span>
+                    <span class="dropdown-item-desc">Mở file Markdown trong tab mới</span>
+                </div>
+            </button>
+
+            <div class="dropdown-divider"></div>
+
+            <button type="button" class="dropdown-item" data-action="open-claude" data-slug={post.slug} data-title={post.title}>
+                <svg viewBox="0 0 24 24" fill="currentColor" class="ai-icon">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+                </svg>
+                <div class="dropdown-item-text">
+                    <span class="dropdown-item-title">Mở với Claude</span>
+                    <span class="dropdown-item-desc">Hỏi Claude về trang này</span>
+                </div>
+            </button>
+
+            <button type="button" class="dropdown-item" data-action="open-chatgpt" data-slug={post.slug} data-title={post.title}>
+                <svg viewBox="0 0 24 24" fill="currentColor" class="ai-icon">
+                    <path d="M22.282 9.821a5.985 5.985 0 0 0-.516-4.91 6.046 6.046 0 0 0-6.51-2.9A6.065 6.065 0 0 0 4.981 4.18a5.985 5.985 0 0 0-3.998 2.9 6.046 6.046 0 0 0 .743 7.097 5.98 5.98 0 0 0 .51 4.911 6.051 6.051 0 0 0 6.515 2.9A5.985 5.985 0 0 0 13.26 24a6.056 6.056 0 0 0 5.772-4.206 5.99 5.99 0 0 0 3.997-2.9 6.056 6.056 0 0 0-.747-7.073zM13.26 22.43a4.476 4.476 0 0 1-2.876-1.04l.141-.081 4.779-2.758a.795.795 0 0 0 .392-.681v-6.737l2.02 1.168a.071.071 0 0 1 .038.052v5.583a4.504 4.504 0 0 1-4.494 4.494zM3.6 18.304a4.47 4.47 0 0 1-.535-3.014l.142.085 4.783 2.759a.771.771 0 0 0 .78 0l5.843-3.369v2.332a.08.08 0 0 1-.033.062L9.74 19.95a4.5 4.5 0 0 1-6.14-1.646zM2.34 7.896a4.485 4.485 0 0 1 2.366-1.973V11.6a.766.766 0 0 0 .388.676l5.815 3.355-2.02 1.168a.076.076 0 0 1-.071 0l-4.83-2.786A4.504 4.504 0 0 1 2.34 7.872zm16.597 3.855l-5.833-3.387L15.119 7.2a.076.076 0 0 1 .071 0l4.83 2.791a4.494 4.494 0 0 1-.676 8.105v-5.678a.79.79 0 0 0-.407-.667zm2.01-3.023l-.141-.085-4.774-2.782a.776.776 0 0 0-.785 0L9.409 9.23V6.897a.066.066 0 0 1 .028-.061l4.83-2.787a4.5 4.5 0 0 1 6.68 4.66zm-12.64 4.135l-2.02-1.164a.08.08 0 0 1-.038-.057V6.075a4.5 4.5 0 0 1 7.375-3.453l-.142.08L8.704 5.46a.795.795 0 0 0-.393.681zm1.097-2.365l2.602-1.5 2.607 1.5v2.999l-2.597 1.5-2.607-1.5z"/>
+                </svg>
+                <div class="dropdown-item-text">
+                    <span class="dropdown-item-title">Mở với ChatGPT</span>
+                    <span class="dropdown-item-desc">Hỏi ChatGPT về trang này</span>
+                </div>
+            </button>
+        </div>
+    </div>
+
+    <!-- Share as Image -->
+    <button
+        type="button"
+        class="share-trigger share-action-btn"
+        data-post={postData}
+        aria-label="Share as image"
+        title="Share as image"
+    >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+            <polyline points="21 15 16 10 5 21"></polyline>
+        </svg>
+    </button>
+</div>
+
+<style>
+    .share-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+
+    .share-action-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 7px 12px;
+        border-radius: 100px;
+        border: 1.5px solid var(--color-border, #e8e8e5);
+        background: transparent;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--color-soft, #666);
+        cursor: pointer;
+        transition: all 0.2s;
+        white-space: nowrap;
+    }
+
+    .share-action-btn:hover {
+        color: var(--color-ink, #1a1a1a);
+        border-color: var(--color-soft, #666);
+    }
+
+    .share-action-btn:active {
+        transform: scale(0.96);
+    }
+
+    .share-action-btn svg {
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+    }
+
+    .share-label {
+        pointer-events: none;
+    }
+
+    .copy-label.copied {
+        color: var(--color-green, #1a7f5a);
+    }
+
+    /* Dropdown styles */
+    .copy-dropdown {
+        position: relative;
+        display: inline-flex;
+    }
+
+    .copy-dropdown .share-copy-btn {
+        border-top-right-radius: 0;
+        border-bottom-right-radius: 0;
+        border-right: none;
+    }
+
+    .dropdown-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        padding: 7px 8px;
+        border-radius: 0 100px 100px 0;
+        border: 1.5px solid var(--color-border, #e8e8e5);
+        border-left: 1px solid var(--color-border, #e8e8e5);
+        background: transparent;
+        color: var(--color-soft, #666);
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .dropdown-toggle:hover {
+        color: var(--color-ink, #1a1a1a);
+        border-color: var(--color-soft, #666);
+    }
+
+    .dropdown-toggle svg {
+        width: 14px;
+        height: 14px;
+    }
+
+    .dropdown-menu {
+        position: absolute;
+        top: calc(100% + 6px);
+        right: 0;
+        min-width: 280px;
+        background: var(--color-card, #fff);
+        border: 1px solid var(--color-border, #e8e8e5);
+        border-radius: 12px;
+        box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+        padding: 6px;
+        z-index: 1000;
+        opacity: 0;
+        visibility: hidden;
+        transform: translateY(-8px);
+        transition: all 0.2s ease;
+    }
+
+    .copy-dropdown.open .dropdown-menu {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+
+    .dropdown-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        width: 100%;
+        padding: 10px 12px;
+        border: none;
+        background: transparent;
+        border-radius: 8px;
+        cursor: pointer;
+        text-align: left;
+        transition: background 0.15s;
+    }
+
+    .dropdown-item:hover {
+        background: var(--color-ink, #1a1a1a);
+    }
+
+    .dropdown-item:hover .dropdown-item-title,
+    .dropdown-item:hover .dropdown-item-desc,
+    .dropdown-item:hover svg {
+        color: #fff;
+    }
+
+    .dropdown-item svg {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+        margin-top: 2px;
+        color: var(--color-soft, #666);
+        transition: color 0.15s;
+    }
+
+    .dropdown-item .ai-icon {
+        color: var(--color-ink, #1a1a1a);
+    }
+
+    .dropdown-item-text {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .dropdown-item-title {
+        display: block;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--color-ink, #1a1a1a);
+        transition: color 0.15s;
+    }
+
+    .dropdown-item-desc {
+        display: block;
+        font-size: 12px;
+        color: var(--color-soft, #666);
+        margin-top: 2px;
+        transition: color 0.15s;
+    }
+
+    .dropdown-divider {
+        height: 1px;
+        background: var(--color-border, #e8e8e5);
+        margin: 6px 0;
+    }
+
+    @media (max-width: 480px) {
+        .share-action-btn {
+            padding: 6px 10px;
+            font-size: 12px;
+        }
+
+        .dropdown-menu {
+            min-width: 260px;
+            right: -40px;
+        }
+    }
+</style>
+
+<script>
+    document.addEventListener("astro:page-load", () => {
+        // Dropdown toggle
+        document.querySelectorAll(".copy-dropdown").forEach((dropdown) => {
+            const toggle = dropdown.querySelector(".dropdown-toggle");
+            const copyBtn = dropdown.querySelector(".share-copy-btn");
+
+            toggle?.addEventListener("click", (e) => {
+                e.stopPropagation();
+                dropdown.classList.toggle("open");
+            });
+
+            // Copy button copies link directly
+            copyBtn?.addEventListener("click", async () => {
+                const slug = (copyBtn as HTMLElement).dataset.slug!;
+                const url = `${window.location.origin}/${slug}`;
+
+                try {
+                    await navigator.clipboard.writeText(url);
+                } catch {
+                    const input = document.createElement("input");
+                    input.value = url;
+                    document.body.appendChild(input);
+                    input.select();
+                    document.execCommand("copy");
+                    input.remove();
+                }
+
+                const label = copyBtn.querySelector(".copy-label");
+                if (label) {
+                    const original = label.textContent;
+                    label.textContent = "Đã sao chép!";
+                    label.classList.add("copied");
+                    setTimeout(() => {
+                        label.textContent = original;
+                        label.classList.remove("copied");
+                    }, 1500);
+                }
+            });
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener("click", () => {
+            document.querySelectorAll(".copy-dropdown.open").forEach((d) => {
+                d.classList.remove("open");
+            });
+        });
+
+        // Dropdown item actions
+        document.querySelectorAll(".dropdown-item").forEach((item) => {
+            item.addEventListener("click", async (e) => {
+                e.stopPropagation();
+                const el = item as HTMLElement;
+                const action = el.dataset.action;
+                const slug = el.dataset.slug;
+                const title = el.dataset.title;
+                const url = `${window.location.origin}/${slug}`;
+                const mdUrl = `${window.location.origin}/${slug}.md`;
+
+                switch (action) {
+                    case "copy-link":
+                        try {
+                            await navigator.clipboard.writeText(url);
+                            el.querySelector(".dropdown-item-title")!.textContent = "Đã sao chép!";
+                            setTimeout(() => {
+                                el.querySelector(".dropdown-item-title")!.textContent = "Copy page link";
+                            }, 1500);
+                        } catch {}
+                        break;
+
+                    case "view-markdown":
+                        window.open(mdUrl, "_blank");
+                        break;
+
+                    case "open-claude":
+                        const claudeUrl = `https://claude.ai/new?q=${encodeURIComponent(`Please read and analyze this page: ${url}`)}`;
+                        window.open(claudeUrl, "_blank");
+                        break;
+
+                    case "open-chatgpt":
+                        const gptUrl = `https://chat.openai.com/?q=${encodeURIComponent(`Please read and analyze this page: ${url}`)}`;
+                        window.open(gptUrl, "_blank");
+                        break;
+                }
+
+                // Close dropdown
+                document.querySelectorAll(".copy-dropdown.open").forEach((d) => {
+                    d.classList.remove("open");
+                });
+            });
+        });
+
+        // Image share triggers
+        document.querySelectorAll(".share-trigger").forEach((btn) => {
+            btn.addEventListener("click", () => {
+                try {
+                    const data = JSON.parse(
+                        (btn as HTMLElement).dataset.post || "{}",
+                    );
+                    if ((window as any).openShareImageModal) {
+                        (window as any).openShareImageModal(data);
+                    }
+                } catch (e) {
+                    console.error("Share trigger error:", e);
+                }
+            });
+        });
+    });
+</script>

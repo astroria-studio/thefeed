@@ -1,0 +1,137 @@
+---
+import type { Case } from "../lib/types";
+import { t } from "../lib/i18n";
+import { getTools } from "../lib/data";
+
+interface Props {
+  case: Case;
+}
+
+const { case: c } = Astro.props;
+const tools = await getTools();
+
+function getToolTitle(slug: string): string {
+  const tool = tools.find((t) => t.slug === slug);
+  return tool?.title || slug;
+}
+
+function getStageLabel(stage: Case["stage"]): string {
+  return t(`stage.${stage}`);
+}
+---
+
+<a
+  href={`/${c.slug}`}
+  class="case"
+  data-tags={[...c.tools, c.model, c.stage].join(", ")}
+  data-slug={c.slug}
+>
+  <div class="case-header">
+    <div class="case-title" transition:name={`title-${c.slug}`}>{c.title}</div>
+    <div class="case-stage">
+      {c.verification === "tonys-pick" && "★ "}
+      {getStageLabel(c.stage)}
+    </div>
+  </div>
+  <div class="case-subtitle" transition:name={`subtitle-${c.slug}`}>
+    {c.subtitle}
+  </div>
+  <div class="case-meta" transition:name={`tags-${c.slug}`}>
+    {
+      c.tools.map((toolSlug) => (
+        <span class="tool">{getToolTitle(toolSlug)}</span>
+      ))
+    }
+  </div>
+</a>
+
+<style>
+  .case {
+    display: block;
+    padding: 28px 0;
+    border-top: 1px solid #e8e8e5;
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.2s ease;
+  }
+
+  .case:last-child {
+    border-bottom: 1px solid #e8e8e5;
+  }
+
+  .case:hover {
+    background: rgba(0, 0, 0, 0.015);
+    margin: 0 -20px;
+    padding: 28px 20px;
+  }
+
+  .case:hover .case-title {
+    color: var(--color-accent);
+  }
+
+  .case-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+  }
+
+  .case-title {
+    font-family: var(--font-heading);
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    transition: color 0.2s ease;
+  }
+
+  .case-stage {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+    margin-left: 16px;
+  }
+
+  .case-subtitle {
+    font-size: 16px;
+    color: var(--color-soft);
+    margin-bottom: 16px;
+    line-height: 1.5;
+  }
+
+  .case-meta {
+    font-size: 13px;
+    color: var(--color-soft);
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .case-meta span {
+    padding: 4px 10px;
+    border-radius: 4px;
+    background: #f3f3f0;
+  }
+
+  .case-meta .tool {
+    color: var(--color-accent);
+    background: var(--color-accent-soft);
+  }
+
+  @media (max-width: 480px) {
+    .case-header {
+      flex-direction: column;
+      gap: 4px;
+    }
+    .case-stage {
+      margin-left: 0;
+    }
+
+    .case:hover {
+      margin: 0 -16px;
+      padding: 28px 16px;
+    }
+  }
+</style>

@@ -1,0 +1,332 @@
+---
+/**
+ * FeedCardAudio — Audio post card with wavesurfer.js waveform.
+ * Delegates actual audio playback to GlobalAudioPlayer.
+ * Wavesurfer syncs visually to the global <audio> element.
+ */
+import type { AudioPost } from "../../lib/types";
+
+interface Props {
+    post: AudioPost;
+}
+
+const { post } = Astro.props;
+
+function formatDuration(seconds: number): string {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m}:${s.toString().padStart(2, "0")}`;
+}
+---
+
+<div
+    class="group rounded-xl border border-border bg-card overflow-hidden transition-shadow hover:shadow-sm"
+    data-audio-card={post.slug}
+    data-audio-url={post.audioUrl}
+    data-audio-title={post.title}
+    data-audio-subtitle={post.subtitle || ""}
+    data-audio-cover={post.coverImage || ""}
+>
+    <div class="flex gap-4 p-4">
+        {
+            post.coverImage ? (
+                <div class="w-14 h-14 rounded-lg overflow-hidden shrink-0 bg-accent-soft">
+                    <img
+                        src={post.coverImage}
+                        alt={post.title}
+                        class="w-full h-full object-cover"
+                        loading="lazy"
+                    />
+                </div>
+            ) : (
+                <div class="w-14 h-14 rounded-lg bg-gradient-to-br from-accent-soft to-accent-mid flex items-center justify-center shrink-0">
+                    <svg
+                        class="w-6 h-6 text-accent"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                    >
+                        <>
+                            <>
+                                <path d="M9 18V5l12-2v13" />
+                                <circle cx="6" cy="18" r="3" />
+                                <circle cx="18" cy="16" r="3" />
+                            </>
+                        </>
+                    </svg>
+                </div>
+            )
+        }
+        <div class="flex-1 min-w-0">
+            <a
+                href={`/${post.slug}`}
+                class="block hover:text-accent transition-colors"
+            >
+                <h3 class="font-medium text-[15px] leading-snug truncate">
+                    {post.title}
+                </h3>
+            </a>
+            {
+                post.subtitle && (
+                    <p class="text-sm text-soft mt-0.5 line-clamp-1">
+                        {post.subtitle}
+                    </p>
+                )
+            }
+            <span class="text-xs text-faint mt-1 block"
+                >{formatDuration(post.duration)}</span
+            >
+        </div>
+        <button
+            type="button"
+            class="audio-play-btn self-center w-10 h-10 rounded-full bg-accent text-white flex items-center justify-center shrink-0 hover:bg-accent/80 transition-colors cursor-pointer"
+            aria-label={`Play ${post.title}`}
+        >
+            <svg
+                class="w-5 h-5 ml-0.5 play-icon"
+                viewBox="0 0 24 24"
+                fill="currentColor"><path d="M8 5v14l11-7z"></path></svg
+            >
+            <svg
+                class="w-5 h-5 pause-icon hidden"
+                viewBox="0 0 24 24"
+                fill="currentColor"
+                ><path d="M6 4h4v16H6zM14 4h4v16h-4z"></path></svg
+            >
+        </button>
+    </div>
+    <div class="waveform-wrap px-4 pb-3 hidden">
+        <div class="waveform-container" id={`waveform-${post.slug}`}></div>
+        <div
+            class="flex justify-between text-[11px] text-faint mt-1 tabular-nums"
+        >
+            <span class="wave-current">0:00</span>
+            <span class="wave-duration">{formatDuration(post.duration)}</span>
+        </div>
+    </div>
+</div>
+
+<style>
+    .waveform-container {
+        border-radius: 6px;
+        overflow: hidden;
+        cursor: pointer;
+    }
+    .tabular-nums {
+        font-variant-numeric: tabular-nums;
+    }
+</style>
+
+<script>
+    import WaveSurfer from "wavesurfer.js";
+
+    document.addEventListener("astro:page-load", () => {
+        // Track wavesurfer instances per slug for this page
+        const cardWavesurfers = new Map<string, any>();
+        let isSyncing = false; // prevents seekTo ↔ seeking feedback loop
+
+        // Collect all audio cards on the page for playlist
+        const allCards = Array.from(
+            document.querySelectorAll("[data-audio-card]"),
+        ) as HTMLElement[];
+
+        function buildPlaylist() {
+            return allCards.map((card) => ({
+                url: card.dataset.audioUrl!,
+                title: card.dataset.audioTitle!,
+                subtitle: card.dataset.audioSubtitle || "",
+                coverImage: card.dataset.audioCover || "",
+                slug: card.dataset.audioCard!,
+            }));
+        }
+
+        function formatTime(s: number): string {
+            const m = Math.floor(s / 60);
+            const sec = Math.floor(s % 60);
+            return `${m}:${sec.toString().padStart(2, "0")}`;
+        }
+
+        // Reset all card play buttons to "play" state
+        function resetAllCards() {
+            allCards.forEach((card) => {
+                card.querySelector(".play-icon")?.classList.remove("hidden");
+                card.querySelector(".pause-icon")?.classList.add("hidden");
+            });
+        }
+
+        // Listen for global player state changes to sync card buttons
+        window.addEventListener("global-player-state", ((e: CustomEvent) => {
+            const { playing, src } = e.detail;
+            allCards.forEach((card) => {
+                const cardUrl = card.dataset.audioUrl!;
+                const isThisCard = src && src.includes(cardUrl);
+                const playIcon = card.querySelector(
+                    ".play-icon",
+                ) as HTMLElement;
+                const pauseIcon = card.querySelector(
+                    ".pause-icon",
+                ) as HTMLElement;
+                if (isThisCard && playing) {
+                    playIcon?.classList.add("hidden");
+                    pauseIcon?.classList.remove("hidden");
+                } else {
+                    playIcon?.classList.remove("hidden");
+                    pauseIcon?.classList.add("hidden");
+                }
+            });
+        }) as EventListener);
+
+        // Listen for global time updates to sync wavesurfer progress
+        window.addEventListener("global-player-timeupdate", ((
+            e: CustomEvent,
+        ) => {
+            const { currentTime, duration, src } = e.detail;
+            allCards.forEach((card) => {
+                const cardUrl = card.dataset.audioUrl!;
+                const slug = card.dataset.audioCard!;
+                if (!src || !src.includes(cardUrl)) return;
+
+                const ws = cardWavesurfers.get(slug);
+                if (ws && duration > 0) {
+                    // Sync wavesurfer progress to the global audio position
+                    const progress = currentTime / duration;
+                    isSyncing = true;
+                    ws.seekTo(progress);
+                    isSyncing = false;
+                }
+                const currentEl = card.querySelector(
+                    ".wave-current",
+                ) as HTMLElement;
+                if (currentEl) currentEl.textContent = formatTime(currentTime);
+            });
+        }) as EventListener);
+
+        // Handle play button clicks
+        allCards.forEach((card) => {
+            const btn = card.querySelector(".audio-play-btn") as HTMLElement;
+            if (!btn) return;
+
+            btn.addEventListener("click", () => {
+                const slug = card.dataset.audioCard!;
+                const audioUrl = card.dataset.audioUrl!;
+                const title = card.dataset.audioTitle!;
+                const subtitle = card.dataset.audioSubtitle || "";
+                const coverImage = card.dataset.audioCover || "";
+
+                const globalAudioEl = (window as any)
+                    .globalAudioEl as HTMLAudioElement;
+                const globalPlay = (window as any).globalPlayerPlay;
+
+                // Check if this track is already the current one
+                if (globalAudioEl && globalAudioEl.src.includes(audioUrl)) {
+                    // Toggle play/pause
+                    if (globalAudioEl.paused) {
+                        globalAudioEl.play().catch(() => {});
+                    } else {
+                        globalAudioEl.pause();
+                    }
+                    return;
+                }
+
+                // Show waveform area
+                const waveWrap = card.querySelector(
+                    ".waveform-wrap",
+                ) as HTMLElement;
+                if (waveWrap && !cardWavesurfers.has(slug)) {
+                    waveWrap.classList.remove("hidden");
+
+                    // Create wavesurfer for visual waveform only (no playback)
+                    const containerId = `waveform-${slug}`;
+                    const ws = WaveSurfer.create({
+                        container: `#${containerId}`,
+                        waveColor: "#c4b5fd",
+                        progressColor: "#1d4ed8",
+                        cursorColor: "#1d4ed8",
+                        cursorWidth: 2,
+                        barWidth: 3,
+                        barGap: 2,
+                        barRadius: 3,
+                        height: 48,
+                        url: audioUrl,
+                        interact: true,
+                        backend: "WebAudio",
+                    });
+
+                    // Disable wavesurfer's own audio — we use the global player
+                    ws.setVolume(0);
+                    ws.on("ready", () => {
+                        ws.setVolume(0); // ensure muted
+                    });
+
+                    // Click on waveform to seek the global audio
+                    ws.on("seeking", (currentTime: number) => {
+                        if (isSyncing) return; // ignore programmatic syncs
+                        if (
+                            globalAudioEl &&
+                            globalAudioEl.src.includes(audioUrl)
+                        ) {
+                            globalAudioEl.currentTime = currentTime;
+                        }
+                    });
+
+                    cardWavesurfers.set(slug, ws);
+                }
+
+                // Play via global player
+                if (globalPlay) {
+                    globalPlay(
+                        audioUrl,
+                        title,
+                        subtitle,
+                        coverImage,
+                        slug,
+                        buildPlaylist(),
+                    );
+                }
+            });
+        });
+
+        // On page load, check if the global player is already playing one of our cards
+        const globalAudioEl = (window as any).globalAudioEl as HTMLAudioElement;
+        if (globalAudioEl && !globalAudioEl.paused) {
+            allCards.forEach((card) => {
+                if (globalAudioEl.src.includes(card.dataset.audioUrl!)) {
+                    card.querySelector(".play-icon")?.classList.add("hidden");
+                    card.querySelector(".pause-icon")?.classList.remove(
+                        "hidden",
+                    );
+                    // Show waveform
+                    const slug = card.dataset.audioCard!;
+                    const waveWrap = card.querySelector(
+                        ".waveform-wrap",
+                    ) as HTMLElement;
+                    if (waveWrap && !cardWavesurfers.has(slug)) {
+                        waveWrap.classList.remove("hidden");
+                        const ws = WaveSurfer.create({
+                            container: `#waveform-${slug}`,
+                            waveColor: "#c4b5fd",
+                            progressColor: "#5a4fcf",
+                            cursorColor: "#5a4fcf",
+                            cursorWidth: 2,
+                            barWidth: 3,
+                            barGap: 2,
+                            barRadius: 3,
+                            height: 48,
+                            url: card.dataset.audioUrl!,
+                            interact: true,
+                            backend: "WebAudio",
+                        });
+                        ws.setVolume(0);
+                        ws.on("ready", () => ws.setVolume(0));
+                        ws.on("seeking", (currentTime: number) => {
+                            if (isSyncing) return;
+                            globalAudioEl.currentTime = currentTime;
+                        });
+                        cardWavesurfers.set(slug, ws);
+                    }
+                }
+            });
+        }
+    });
+</script>

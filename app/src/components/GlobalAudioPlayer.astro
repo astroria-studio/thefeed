@@ -1,0 +1,418 @@
+---
+/**
+ * GlobalAudioPlayer — Persistent audio player bar.
+ * Uses transition:persist so audio continues playing across page navigations.
+ * Owns the <audio> element. Cards delegate playback here.
+ */
+---
+
+<div
+    id="globalPlayer"
+    class="global-player"
+    data-active="false"
+    transition:persist="globalPlayer"
+>
+    <!-- The actual audio element — persists across pages -->
+    <audio id="globalAudioEl" preload="auto"></audio>
+
+    <div class="player-inner">
+        <!-- Seek bar at top -->
+        <div class="player-seek" id="playerSeek">
+            <div class="seek-progress" id="seekProgress"></div>
+        </div>
+
+        <!-- Cover -->
+        <img id="playerCover" class="player-cover" src="" alt="" />
+
+        <!-- Info -->
+        <div class="player-meta">
+            <div class="player-title" id="playerTitle">—</div>
+            <div class="player-subtitle" id="playerSubtitle"></div>
+        </div>
+
+        <!-- Time -->
+        <div class="player-time" id="playerTime">
+            <span id="playerCurrentTime">0:00</span>
+        </div>
+
+        <!-- Controls -->
+        <div class="player-controls">
+            <button class="ctrl-btn" id="playerPrev" aria-label="Previous">
+                <svg viewBox="0 0 24 24" fill="currentColor"
+                    ><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"></path></svg
+                >
+            </button>
+            <button
+                class="ctrl-btn ctrl-play"
+                id="playerPlayPause"
+                aria-label="Play/Pause"
+            >
+                <svg class="icon-play" viewBox="0 0 24 24" fill="currentColor"
+                    ><path d="M8 5v14l11-7z"></path></svg
+                >
+                <svg
+                    class="icon-pause hidden"
+                    viewBox="0 0 24 24"
+                    fill="currentColor"
+                    ><path d="M6 4h4v16H6zM14 4h4v16h-4z"></path></svg
+                >
+            </button>
+            <button class="ctrl-btn" id="playerNext" aria-label="Next">
+                <svg viewBox="0 0 24 24" fill="currentColor"
+                    ><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"></path></svg
+                >
+            </button>
+        </div>
+
+        <!-- Close -->
+        <button class="ctrl-btn ctrl-close" id="playerClose" aria-label="Close">
+            <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg
+            >
+        </button>
+    </div>
+</div>
+
+<style>
+    .global-player {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 9999;
+        transform: translateY(100%);
+        transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1);
+        pointer-events: none;
+    }
+    .global-player[data-active="true"] {
+        transform: translateY(0);
+        pointer-events: auto;
+    }
+
+    .player-inner {
+        max-width: 768px;
+        margin: 0 auto;
+        background: rgba(24, 24, 27, 0.94);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-radius: 14px 14px 0 0;
+        padding: 10px 16px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        color: #fff;
+        box-shadow: 0 -2px 24px rgba(0, 0, 0, 0.15);
+        position: relative;
+        overflow: hidden;
+    }
+
+    .player-seek {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: rgba(255, 255, 255, 0.1);
+        cursor: pointer;
+        border-radius: 14px 14px 0 0;
+        overflow: hidden;
+        transition: height 0.15s ease;
+    }
+    .player-seek:hover {
+        height: 6px;
+    }
+    .seek-progress {
+        height: 100%;
+        width: 0%;
+        background: var(--color-accent, #1d4ed8);
+        border-radius: inherit;
+        transition: width 0.1s linear;
+        pointer-events: none;
+    }
+
+    .player-cover {
+        width: 36px;
+        height: 36px;
+        border-radius: 6px;
+        object-fit: cover;
+        flex-shrink: 0;
+        background: rgba(255, 255, 255, 0.08);
+    }
+    .player-cover[src=""] {
+        display: none;
+    }
+
+    .player-meta {
+        flex: 1;
+        min-width: 0;
+    }
+    .player-title {
+        font-size: 13px;
+        font-weight: 600;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .player-subtitle {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.4);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .player-time {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.5);
+        font-variant-numeric: tabular-nums;
+        flex-shrink: 0;
+    }
+
+    .player-controls {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        flex-shrink: 0;
+    }
+
+    .ctrl-btn {
+        width: 32px;
+        height: 32px;
+        border: none;
+        background: none;
+        color: rgba(255, 255, 255, 0.6);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        padding: 0;
+        transition: all 0.15s;
+    }
+    .ctrl-btn:hover {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.1);
+    }
+    .ctrl-btn svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    .ctrl-play {
+        width: 38px;
+        height: 38px;
+        background: var(--color-accent, #1d4ed8);
+        color: #fff !important;
+        margin: 0 2px;
+    }
+    .ctrl-play:hover {
+        opacity: 0.85;
+    }
+    .ctrl-play svg {
+        width: 20px;
+        height: 20px;
+    }
+
+    .ctrl-close {
+        margin-left: 4px;
+    }
+    .ctrl-close svg {
+        width: 14px;
+        height: 14px;
+    }
+
+    .hidden {
+        display: none !important;
+    }
+</style>
+
+<script>
+    /**
+     * Global Audio Player Controller
+     * Since the element uses transition:persist, we only initialize ONCE.
+     * The <audio> element survives page navigations.
+     */
+    function initGlobalPlayer() {
+        const player = document.getElementById("globalPlayer");
+        if (!player || player.dataset.initialized === "true") return;
+        player.dataset.initialized = "true";
+
+        const audioEl = document.getElementById(
+            "globalAudioEl",
+        ) as HTMLAudioElement;
+        const titleEl = document.getElementById("playerTitle")!;
+        const subtitleEl = document.getElementById("playerSubtitle")!;
+        const coverEl = document.getElementById(
+            "playerCover",
+        ) as HTMLImageElement;
+        const timeEl = document.getElementById("playerCurrentTime")!;
+        const closeBtn = document.getElementById("playerClose")!;
+        const playPauseBtn = document.getElementById("playerPlayPause")!;
+        const prevBtn = document.getElementById("playerPrev")!;
+        const nextBtn = document.getElementById("playerNext")!;
+        const iconPlay = playPauseBtn.querySelector(
+            ".icon-play",
+        ) as HTMLElement;
+        const iconPause = playPauseBtn.querySelector(
+            ".icon-pause",
+        ) as HTMLElement;
+        const seekBar = document.getElementById("playerSeek")!;
+        const seekProgress = document.getElementById("seekProgress")!;
+
+        // Playlist for prev/next navigation
+        let playlist: Array<{
+            url: string;
+            title: string;
+            subtitle: string;
+            coverImage: string;
+            slug: string;
+        }> = [];
+        let currentIdx = -1;
+
+        function formatTime(s: number): string {
+            if (isNaN(s)) return "0:00";
+            const m = Math.floor(s / 60);
+            const sec = Math.floor(s % 60);
+            return `${m}:${sec.toString().padStart(2, "0")}`;
+        }
+
+        function updatePlayState() {
+            if (audioEl.paused) {
+                iconPlay.classList.remove("hidden");
+                iconPause.classList.add("hidden");
+            } else {
+                iconPlay.classList.add("hidden");
+                iconPause.classList.remove("hidden");
+            }
+            // Notify any visible cards
+            window.dispatchEvent(
+                new CustomEvent("global-player-state", {
+                    detail: {
+                        playing: !audioEl.paused,
+                        currentTime: audioEl.currentTime,
+                        src: audioEl.src,
+                    },
+                }),
+            );
+        }
+
+        // Audio element events
+        audioEl.addEventListener("play", updatePlayState);
+        audioEl.addEventListener("pause", updatePlayState);
+        audioEl.addEventListener("ended", () => {
+            updatePlayState();
+            // Auto-advance to next track
+            if (currentIdx < playlist.length - 1) {
+                playTrack(currentIdx + 1);
+            }
+        });
+        audioEl.addEventListener("timeupdate", () => {
+            timeEl.textContent = `${formatTime(audioEl.currentTime)} / ${formatTime(audioEl.duration)}`;
+            // Update seek bar progress
+            if (audioEl.duration > 0) {
+                const pct = (audioEl.currentTime / audioEl.duration) * 100;
+                seekProgress.style.width = `${pct}%`;
+            }
+            // Broadcast time for any synced waveforms on the page
+            window.dispatchEvent(
+                new CustomEvent("global-player-timeupdate", {
+                    detail: {
+                        currentTime: audioEl.currentTime,
+                        duration: audioEl.duration,
+                        src: audioEl.src,
+                    },
+                }),
+            );
+        });
+
+        // Seek bar click-to-seek
+        seekBar.addEventListener("click", (e) => {
+            const rect = seekBar.getBoundingClientRect();
+            const ratio = (e.clientX - rect.left) / rect.width;
+            if (audioEl.duration > 0) {
+                audioEl.currentTime = ratio * audioEl.duration;
+            }
+        });
+
+        function playTrack(idx: number) {
+            if (idx < 0 || idx >= playlist.length) return;
+
+            // Reset the PREVIOUS track's card UI before switching
+            const oldSrc = audioEl.src;
+            if (oldSrc) {
+                audioEl.pause();
+                window.dispatchEvent(
+                    new CustomEvent("global-player-state", {
+                        detail: { playing: false, src: oldSrc },
+                    }),
+                );
+            }
+
+            currentIdx = idx;
+            const track = playlist[idx];
+            audioEl.src = track.url;
+            audioEl.play().catch(() => {});
+            titleEl.textContent = track.title;
+            subtitleEl.textContent = track.subtitle || "";
+            coverEl.src = track.coverImage || "";
+            player!.dataset.active = "true";
+            // Pause all other media on the page
+            document.querySelectorAll("video, audio").forEach((el) => {
+                const media = el as HTMLMediaElement;
+                if (media !== audioEl && !media.paused) media.pause();
+            });
+        }
+
+        // Expose play function globally
+        (window as any).globalPlayerPlay = (
+            url: string,
+            title: string,
+            subtitle: string,
+            coverImage: string,
+            slug: string,
+            tracks?: typeof playlist,
+        ) => {
+            if (tracks && tracks.length > 0) {
+                playlist = tracks;
+                currentIdx = tracks.findIndex((t) => t.slug === slug);
+                if (currentIdx === -1) currentIdx = 0;
+            } else {
+                playlist = [{ url, title, subtitle, coverImage, slug }];
+                currentIdx = 0;
+            }
+            playTrack(currentIdx);
+        };
+
+        // Expose audio element globally for wavesurfer sync
+        (window as any).globalAudioEl = audioEl;
+
+        // Controls
+        playPauseBtn.onclick = () => {
+            if (audioEl.paused) audioEl.play().catch(() => {});
+            else audioEl.pause();
+        };
+
+        prevBtn.onclick = () => {
+            if (currentIdx > 0) playTrack(currentIdx - 1);
+        };
+
+        nextBtn.onclick = () => {
+            if (currentIdx < playlist.length - 1) playTrack(currentIdx + 1);
+        };
+
+        closeBtn.onclick = () => {
+            audioEl.pause();
+            audioEl.src = "";
+            player!.dataset.active = "false";
+            (window as any).activeAudioSlug = null;
+        };
+    }
+
+    // Init on first load
+    document.addEventListener("astro:page-load", initGlobalPlayer);
+    // Also try immediately in case page-load already fired
+    initGlobalPlayer();
+</script>

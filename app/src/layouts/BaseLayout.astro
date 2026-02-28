@@ -1,0 +1,423 @@
+---
+import { ViewTransitions } from "astro:transitions";
+import { SEO } from "astro-seo";
+import { t, getLang, getEdition } from "../lib/i18n";
+import GlobalAudioPlayer from "../components/GlobalAudioPlayer.astro";
+import ShareImageModal from "../components/ShareImageModal.astro";
+import StreamModal from "../components/stream/StreamModal.astro";
+import SearchModal from "../components/SearchModal.astro";
+import config from "../../../thefeed.config";
+import "../styles/app.css";
+
+interface Props {
+  title?: string;
+  description?: string;
+  image?: string;
+  article?: boolean;
+}
+
+const { title, description, image, article = false } = Astro.props;
+const lang = getLang();
+const edition = getEdition();
+const siteName = config.site.name;
+const pageTitle = title
+  ? `${title} — ${siteName}`
+  : `${siteName} — ${config.site.tagline}`;
+const pageDescription = description || config.site.description;
+const siteUrl = config.site.url;
+const canonicalUrl = new URL(Astro.url.pathname, siteUrl).href;
+// Use provided image or generate dynamic OG image
+const ogImage = image || `${siteUrl}/api/og.png?title=${encodeURIComponent(title || config.site.name)}`;
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <SEO
+      title={pageTitle}
+      description={pageDescription}
+      canonical={canonicalUrl}
+      openGraph={{
+        basic: {
+          title: pageTitle,
+          type: article ? "article" : "website",
+          image: ogImage,
+          url: canonicalUrl,
+        },
+        optional: {
+          description: pageDescription,
+          siteName: siteName,
+          locale: config.site.locale === "vi" ? "vi_VN" : "en_US",
+        },
+      }}
+      twitter={{
+        card: "summary_large_image",
+        title: pageTitle,
+        description: pageDescription,
+        image: ogImage,
+      }}
+    />
+    <link
+      rel="alternate"
+      type="application/rss+xml"
+      title={`${siteName} RSS`}
+      href="/rss.xml"
+    />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:ital,wght@0,500;0,600;1,400&display=swap"
+      rel="stylesheet"
+    />
+    <ViewTransitions />
+  </head>
+  <body>
+    <nav
+      class="mx-auto max-w-3xl w-full px-6 py-6 flex justify-between items-center text-[15px] max-sm:px-4"
+    >
+      <a href="/" id="site-logo" class="font-heading font-semibold text-lg text-ink shrink-0 relative z-[60] transition-colors duration-300"
+        >{siteName}</a
+      >
+      <!-- Desktop nav -->
+      <div class="hidden sm:flex gap-7 items-center">
+        <a
+          href="/feed"
+          class="text-soft font-medium hover:text-ink transition-colors"
+          >{t("nav.explore")}</a
+        >
+        {config.features.stream && (
+          <a
+            href="/stream"
+            class="text-soft font-medium hover:text-ink transition-colors"
+            >Stream</a
+          >
+        )}
+        <a
+          href="/about"
+          class="text-soft font-medium hover:text-ink transition-colors"
+          >About</a
+        >
+        {config.features.search && (
+          <button
+            id="search-trigger"
+            aria-label="Search"
+            class="text-soft hover:text-ink transition-colors flex items-center justify-center p-1 rounded-full hover:bg-ink/5"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="8" stroke-width="2"/>
+              <path d="m21 21-4.35-4.35" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+          </button>
+        )}
+      </div>
+      <!-- Mobile hamburger -->
+      <button
+        id="mobile-menu-btn"
+        class="sm:hidden relative z-[60] w-10 h-10 flex items-center justify-center -mr-2 transition-colors duration-300"
+        aria-label="Toggle menu"
+      >
+        <div class="menu-icon">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      </button>
+    </nav>
+
+    <!-- Mobile fullscreen menu -->
+    <div
+      id="mobile-menu"
+      class="fixed inset-0 z-50 pointer-events-none opacity-0 transition-all duration-300 ease-out sm:hidden bg-gradient-to-br from-blue-600 via-blue-700 to-slate-900"
+    >
+      <div class="h-full flex flex-col items-center justify-center gap-8 text-2xl font-medium">
+        <a href="/feed" class="mobile-nav-link text-white hover:text-white/80 transition-colors translate-y-4 opacity-0">{t("nav.explore")}</a>
+        {config.features.stream && (
+          <a href="/stream" class="mobile-nav-link text-white hover:text-white/80 transition-colors translate-y-4 opacity-0">Stream</a>
+        )}
+        <a href="/about" class="mobile-nav-link text-white hover:text-white/80 transition-colors translate-y-4 opacity-0">About</a>
+        {config.features.jokes && (
+          <a href="/jokes" class="mobile-nav-link text-white hover:text-white/80 transition-colors translate-y-4 opacity-0">Jokes</a>
+        )}
+        {config.features.search && (
+          <button id="mobile-search-btn" class="mobile-nav-link text-white hover:text-white/80 transition-colors translate-y-4 opacity-0 flex items-center gap-2">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <circle cx="11" cy="11" r="8" stroke-width="2"/>
+              <path d="m21 21-4.35-4.35" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            Search
+          </button>
+        )}
+      </div>
+    </div>
+    <main class="mx-auto max-w-3xl w-full px-6 max-sm:px-4">
+      <slot />
+    </main>
+    <footer
+      class="mx-auto max-w-3xl px-6 pt-12 pb-20 text-[13px] text-faint flex justify-between flex-wrap gap-3 max-sm:flex-col max-sm:px-5 max-sm:pt-8 max-sm:pb-12 max-sm:gap-2"
+    >
+      <span>{config.site.author} · {config.site.tagline}</span>
+      <div class="flex gap-4">
+        {config.features.jokes && (
+          <a href="/jokes" class="hover:text-soft transition-colors">Jokes</a>
+        )}
+      </div>
+    </footer>
+    <GlobalAudioPlayer />
+    <ShareImageModal />
+    <StreamModal />
+    {config.features.search && <SearchModal />}
+
+    <!-- Global Page Transit Loading Bar -->
+    <div
+      id="page-progress"
+      class="fixed top-0 left-0 h-1 w-0 bg-accent z-50 transition-all duration-300 ease-out opacity-0 pointer-events-none"
+    >
+    </div>
+
+    <style is:global>
+      #page-progress.is-loading {
+        opacity: 1;
+        width: 30%;
+        transition: width 0.5s ease-out;
+      }
+      #page-progress.is-completing {
+        width: 100%;
+        transition: width 0.2s ease-out;
+      }
+
+      /* Mobile menu animations */
+      #mobile-menu.is-open {
+        opacity: 1;
+        pointer-events: auto;
+      }
+      #mobile-menu.is-open .mobile-nav-link {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .mobile-nav-link {
+        transition: opacity 0.3s ease-out, transform 0.3s ease-out, color 0.2s;
+      }
+      .mobile-nav-link:nth-child(1) { transition-delay: 0.05s; }
+      .mobile-nav-link:nth-child(2) { transition-delay: 0.1s; }
+      .mobile-nav-link:nth-child(3) { transition-delay: 0.15s; }
+      .mobile-nav-link:nth-child(4) { transition-delay: 0.2s; }
+      .mobile-nav-link:nth-child(5) { transition-delay: 0.25s; }
+
+      /* Hamburger icon */
+      .menu-icon {
+        width: 22px;
+        height: 16px;
+        position: relative;
+      }
+      .menu-icon span {
+        display: block;
+        position: absolute;
+        height: 2px;
+        width: 100%;
+        background: currentColor;
+        border-radius: 2px;
+        left: 0;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+      .menu-icon span:nth-child(1) { top: 0; }
+      .menu-icon span:nth-child(2) { top: 7px; }
+      .menu-icon span:nth-child(3) { top: 14px; }
+
+      /* Hamburger to X */
+      .menu-open .menu-icon span {
+        background: white;
+      }
+      .menu-open .menu-icon span:nth-child(1) {
+        top: 7px;
+        transform: rotate(45deg);
+      }
+      .menu-open .menu-icon span:nth-child(2) {
+        opacity: 0;
+        transform: translateX(-10px);
+      }
+      .menu-open .menu-icon span:nth-child(3) {
+        top: 7px;
+        transform: rotate(-45deg);
+      }
+    </style>
+
+    <script>
+      // Mobile menu toggle
+      document.addEventListener("astro:page-load", () => {
+        const menuBtn = document.getElementById("mobile-menu-btn");
+        const menu = document.getElementById("mobile-menu");
+        const searchBtn = document.getElementById("mobile-search-btn");
+        const navLinks = menu?.querySelectorAll("a");
+        const siteLogo = document.getElementById("site-logo");
+
+        const closeMenu = () => {
+          menu?.classList.remove("is-open");
+          menuBtn?.classList.remove("menu-open");
+          siteLogo?.classList.remove("text-white");
+          siteLogo?.classList.add("text-ink");
+          document.body.style.overflow = "";
+        };
+
+        menuBtn?.addEventListener("click", () => {
+          const isOpen = menu?.classList.contains("is-open");
+          if (isOpen) {
+            closeMenu();
+          } else {
+            menu?.classList.add("is-open");
+            menuBtn.classList.add("menu-open");
+            siteLogo?.classList.remove("text-ink");
+            siteLogo?.classList.add("text-white");
+            document.body.style.overflow = "hidden";
+          }
+        });
+
+        // Close menu on link click
+        navLinks?.forEach((link) => {
+          link.addEventListener("click", () => {
+            closeMenu();
+          });
+        });
+
+        // Search button opens search modal and closes menu
+        searchBtn?.addEventListener("click", () => {
+          // Close menu first
+          menu?.classList.remove("is-open");
+          menuBtn?.classList.remove("menu-open");
+          siteLogo?.classList.remove("text-white");
+          siteLogo?.classList.add("text-ink");
+          document.body.style.overflow = "";
+
+          // Open search dialog after menu transition
+          setTimeout(() => {
+            const dialog = document.getElementById("search-dialog") as HTMLDialogElement;
+            const input = document.getElementById("search-input") as HTMLInputElement;
+            if (dialog) {
+              dialog.showModal();
+              setTimeout(() => input?.focus(), 50);
+            }
+          }, 300);
+        });
+
+        // Close on escape
+        document.addEventListener("keydown", (e) => {
+          if (e.key === "Escape" && menu?.classList.contains("is-open")) {
+            closeMenu();
+          }
+        });
+      });
+
+      // Also close menu before page transition
+      document.addEventListener("astro:before-preparation", () => {
+        const menu = document.getElementById("mobile-menu");
+        const menuBtn = document.getElementById("mobile-menu-btn");
+        const siteLogo = document.getElementById("site-logo");
+        menu?.classList.remove("is-open");
+        menuBtn?.classList.remove("menu-open");
+        siteLogo?.classList.remove("text-white");
+        siteLogo?.classList.add("text-ink");
+        document.body.style.overflow = "";
+      });
+    </script>
+
+    <script>
+      import GLightbox from "glightbox";
+      import "glightbox/dist/css/glightbox.min.css";
+
+      document.addEventListener("astro:page-load", () => {
+        (window as any).initVibeLightbox = (
+          containerSelector = ".prose-content",
+        ) => {
+          const containers = document.querySelectorAll(containerSelector);
+          let galleryCount = (window as any)._vibeGalleryCount || 0;
+
+          containers.forEach((container) => {
+            const images = container.querySelectorAll("img");
+            if (images.length === 0) return;
+
+            galleryCount++;
+
+            images.forEach((img) => {
+              if (img.parentElement && img.parentElement.tagName === "A") {
+                img.parentElement.classList.add("glightbox");
+                img.parentElement.setAttribute(
+                  "data-gallery",
+                  `gallery-${galleryCount}`,
+                );
+              } else {
+                const a = document.createElement("a");
+                a.href = img.src;
+                a.className = "glightbox";
+                a.setAttribute("data-gallery", `gallery-${galleryCount}`);
+                img.parentNode!.insertBefore(a, img);
+                a.appendChild(img);
+              }
+            });
+          });
+
+          (window as any)._vibeGalleryCount = galleryCount;
+
+          if ((window as any)._globalLightbox) {
+            (window as any)._globalLightbox.reload();
+          } else {
+            (window as any)._globalLightbox = GLightbox({
+              selector: ".glightbox",
+              touchNavigation: true,
+              loop: true,
+              zoomable: true,
+            });
+          }
+        };
+
+        (window as any).initVibeLightbox(".prose-content");
+      });
+    </script>
+
+    <script>
+      let progressTimeout: number;
+
+      document.addEventListener("astro:before-preparation", () => {
+        const bar = document.getElementById("page-progress");
+        if (bar) {
+          clearTimeout(progressTimeout);
+          bar.classList.remove("is-completing");
+          bar.classList.add("is-loading");
+
+          progressTimeout = window.setTimeout(() => {
+            if (bar.classList.contains("is-loading")) {
+              bar.style.width = "70%";
+            }
+          }, 500);
+        }
+      });
+
+      document.addEventListener("astro:after-preparation", () => {
+        const bar = document.getElementById("page-progress");
+        if (bar) {
+          clearTimeout(progressTimeout);
+          bar.classList.remove("is-loading");
+          bar.classList.add("is-completing");
+
+          progressTimeout = window.setTimeout(() => {
+            bar.classList.remove("is-completing");
+            bar.style.width = "0";
+          }, 300);
+        }
+      });
+
+      window.addEventListener("load", () => {
+        const bar = document.getElementById("page-progress");
+        if (bar) {
+          bar.classList.remove("is-loading");
+          bar.classList.add("is-completing");
+          setTimeout(() => {
+            bar.classList.remove("is-completing");
+            bar.style.width = "0";
+          }, 300);
+        }
+      });
+    </script>
+  </body>
+</html>

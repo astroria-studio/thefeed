@@ -1,0 +1,120 @@
+{
+  "site": {
+    "name": "A Realistic Dreamer",
+    "tagline": "AI Automation & Vibe Coding — process thật",
+    "description": "Chia sẻ process thật về AI automation và vibe coding — từ nghiên cứu đến ứng dụng mỗi ngày.",
+    "share_brand": "A Realistic Dreamer",
+    "share_url": "arealisticdreamer.com",
+    "share_filename_prefix": "arealisticdreamer"
+  },
+  "nav": {
+    "explore": "Khám phá",
+    "match": "Tìm Pattern",
+    "submit": "Gửi bài",
+    "search": "Tìm kiếm"
+  },
+  "home": {
+    "hero": "Tự động hóa công việc bằng AI. Process thật.",
+    "subtitle": "Mình nghiên cứu và ứng dụng AI automation full-time — chia sẻ hành trình này để mang lại giá trị thật cho công việc và đời sống.",
+    "cta_explore": "Xem bài viết",
+    "cta_match": "Làm Quiz"
+  },
+  "explore": {
+    "title": "Bài viết",
+    "subtitle": "Workflow thật, process thật — kể cả failures.",
+    "filter_all": "Tất cả"
+  },
+  "quiz": {
+    "title": "Tìm AI business pattern phù hợp với bạn",
+    "subtitle": "5 câu hỏi. Match với case thực tế từ những builder đã làm.",
+    "q1": "Trình độ kỹ thuật của bạn?",
+    "q1_opt1": "Không biết code",
+    "q1_opt1_desc": "Chỉ dùng tool, không build",
+    "q1_opt2": "Low-code OK",
+    "q1_opt2_desc": "Zapier, Notion, Airtable, script cơ bản",
+    "q1_opt3": "Biết code",
+    "q1_opt3_desc": "Build app với AI hỗ trợ (Cursor, Claude Code)",
+    "q1_opt4": "Developer",
+    "q1_opt4_desc": "Ship production code, tích hợp API, infra",
+    "q2": "Chuyên môn của bạn ở đâu?",
+    "q2_hint": "Chọn tối đa 3",
+    "q2_marketing": "Marketing & Content",
+    "q2_education": "Giáo dục & Đào tạo",
+    "q2_ecommerce": "E-commerce & Bán lẻ",
+    "q2_finance": "Tài chính & Kế toán",
+    "q2_health": "Y tế & Wellness",
+    "q2_saas": "Software & SaaS",
+    "q2_services": "Agency & Freelance",
+    "q2_other": "Khác / Đa năng",
+    "q3": "Bạn có thể đầu tư bao nhiêu?",
+    "q3_opt1": "Chỉ có thời gian",
+    "q3_opt1_desc": "Tool miễn phí, làm side project",
+    "q3_opt2": "Dưới 500k/tháng",
+    "q3_opt2_desc": "Chi phí API, subscription cơ bản",
+    "q3_opt3": "500k–2tr/tháng",
+    "q3_opt3_desc": "Side project nghiêm túc hoặc startup early stage",
+    "q3_opt4": "2tr+/tháng hoặc full-time",
+    "q3_opt4_desc": "All in",
+    "q4": "Bạn muốn phục vụ ai?",
+    "q4_opt1": "Người dùng cá nhân, thị trường VN",
+    "q4_opt1_desc": "Khách hàng Việt Nam hoặc Đông Nam Á",
+    "q4_opt2": "Người dùng cá nhân, global",
+    "q4_opt2_desc": "Tiếng Anh, toàn cầu",
+    "q4_opt3": "Doanh nghiệp nhỏ",
+    "q4_opt3_desc": "SMB, solopreneur, freelancer",
+    "q4_opt4": "Doanh nghiệp lớn",
+    "q4_opt4_desc": "Enterprise, sales cycle dài",
+    "q5": "Mục tiêu thực sự của bạn là gì?",
+    "q5_opt1": "Revenue nhanh",
+    "q5_opt1_desc": "Kiếm đồng đầu tiên trong vài tuần, validate nhanh",
+    "q5_opt2": "Build sản phẩm thực sự",
+    "q5_opt2_desc": "Sẵn sàng đầu tư nhiều tháng để xây thứ bền vững",
+    "q5_opt3": "Tăng sức mạnh công việc hiện tại",
+    "q5_opt3_desc": "Dùng AI để 10x job hoặc business hiện có",
+    "q5_opt4": "Học và khám phá",
+    "q5_opt4_desc": "Tìm hướng đi, thử nghiệm trước",
+    "continue": "Tiếp tục",
+    "back": "Quay lại",
+    "see_results": "Xem kết quả"
+  },
+  "results": {
+    "title": "Đây là những gì phù hợp với bạn",
+    "subtitle": "Xếp hạng theo mức độ match với profile của bạn.",
+    "strong": "Rất phù hợp",
+    "possible": "Khả thi",
+    "stretch": "Thử thách",
+    "why_fits": "Tại sao phù hợp:",
+    "share_prompt": "Biết ai đang tìm hiểu AI business?",
+    "share": "Chia sẻ quiz này",
+    "retake": "Làm lại quiz"
+  },
+  "case": {
+    "tonys_take": "Góc nhìn của Toàn",
+    "what_works": "Điều Thực Sự Hiệu Quả",
+    "what_different": "Nếu Làm Lại Tôi Sẽ",
+    "pattern": "Pattern",
+    "revenue": "Doanh thu",
+    "verified": "Xác minh",
+    "market": "Thị trường",
+    "year": "Năm"
+  },
+  "verification": {
+    "unverified": "Chưa xác minh",
+    "partial": "Xác minh một phần",
+    "verified": "Đã xác minh",
+    "tonys-pick": "Toàn's Pick"
+  },
+  "stage": {
+    "idea": "Ý tưởng",
+    "building": "Đang xây",
+    "launched": "Đã launch",
+    "profitable": "Có lợi nhuận",
+    "active": "Đang dùng"
+  },
+  "caseType": {
+    "business": "Business",
+    "use-case": "Use Case",
+    "workflow": "Workflow",
+    "lifestyle": "Lifestyle"
+  }
+}

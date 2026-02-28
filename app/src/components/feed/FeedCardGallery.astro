@@ -1,0 +1,76 @@
+---
+/**
+ * FeedCardGallery — Compact gallery card with horizontal scroll preview.
+ * Shows title, subtitle, photo count, and a compact image strip.
+ */
+import type { GalleryPost } from "../../lib/types";
+
+interface Props {
+    post: GalleryPost;
+}
+
+const { post } = Astro.props;
+const previewImages = post.images.slice(0, 4);
+const extraCount = Math.max(0, post.images.length - 4);
+---
+
+<a
+    href={`/${post.slug}`}
+    class="group block rounded-xl border border-border bg-card overflow-hidden transition-shadow hover:shadow-sm"
+>
+    <!-- Header -->
+    <div class="p-4 pb-3">
+        <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0">
+                <h3
+                    class="font-heading font-semibold text-base group-hover:text-accent transition-colors truncate"
+                    transition:name={`title-${post.slug}`}
+                >
+                    {post.title}
+                </h3>
+                {
+                    post.subtitle && (
+                        <p
+                            class="text-sm text-soft mt-0.5 line-clamp-1"
+                            transition:name={`subtitle-${post.slug}`}
+                        >
+                            {post.subtitle}
+                        </p>
+                    )
+                }
+            </div>
+            <span
+                class="text-xs text-faint bg-ink/[0.04] px-2 py-1 rounded-full shrink-0 font-medium"
+            >
+                {post.images.length} photos
+            </span>
+        </div>
+    </div>
+    <!-- Image strip: 2 or 3 images side by side, compact -->
+    <div class="grid grid-cols-3 gap-0.5">
+        {
+            previewImages.slice(0, 3).map((img, i) => (
+                <div
+                    class={`relative overflow-hidden aspect-[4/3] bg-ink/5 ${i === 2 && extraCount > 0 ? "" : ""}`}
+                >
+                    <img
+                        src={img.url}
+                        alt={img.caption || post.title}
+                        class="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                        loading="lazy"
+                        transition:name={
+                            i === 0 ? `hero-${post.slug}` : undefined
+                        }
+                    />
+                    {i === 2 && extraCount > 0 && (
+                        <div class="absolute inset-0 bg-ink/40 flex items-center justify-center">
+                            <span class="text-white text-sm font-bold">
+                                +{extraCount}
+                            </span>
+                        </div>
+                    )}
+                </div>
+            ))
+        }
+    </div>
+</a>

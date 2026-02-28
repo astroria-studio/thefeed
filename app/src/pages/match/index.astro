@@ -1,0 +1,909 @@
+---
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import { t } from "../../lib/i18n";
+import { getCases, getTools } from "../../lib/data";
+
+const cases = await getCases();
+const tools = await getTools();
+
+// Serialize for client
+const casesJson = JSON.stringify(
+  cases.map((c) => ({
+    slug: c.slug,
+    title: c.title,
+    subtitle: c.subtitle,
+    tools: c.tools,
+    needs_tech: c.needs_tech,
+    fits_goal: c.fits_goal,
+    fits_domain: c.fits_domain,
+  })),
+);
+
+const toolsJson = JSON.stringify(
+  tools.map((t) => ({
+    slug: t.slug,
+    title: t.title,
+  })),
+);
+---
+
+<BaseLayout title="Find Your Match">
+  <div class="quiz-container">
+    <!-- Quiz Section -->
+    <div id="quiz">
+      <div class="header-label">{t("site.name")}</div>
+      <h1>What AI use cases fit you?</h1>
+      <p class="header-sub">3 quick questions to find relevant articles.</p>
+
+      <div class="progress" id="progress">
+        <div class="progress-dot"></div>
+        <div class="progress-dot"></div>
+        <div class="progress-dot"></div>
+      </div>
+
+      <!-- Q1: What's your goal? -->
+      <div class="question active" data-q="0">
+        <div class="q-number">Question 1 of 3</div>
+        <div class="q-text">What are you looking for?</div>
+        <div class="options" data-type="single">
+          <div class="option" data-value="build">
+            <div class="option-radio"></div>
+            <div class="option-content">
+              <div class="option-label">Build something</div>
+              <div class="option-desc">
+                Start a business, create a product, launch a side project
+              </div>
+            </div>
+          </div>
+          <div class="option" data-value="improve">
+            <div class="option-radio"></div>
+            <div class="option-content">
+              <div class="option-label">Improve my work</div>
+              <div class="option-desc">
+                Be more productive, automate tasks, work smarter
+              </div>
+            </div>
+          </div>
+          <div class="option" data-value="life">
+            <div class="option-radio"></div>
+            <div class="option-content">
+              <div class="option-label">Enhance my life</div>
+              <div class="option-desc">
+                Personal projects, learning, lifestyle improvements
+              </div>
+            </div>
+          </div>
+          <div class="option" data-value="explore">
+            <div class="option-radio"></div>
+            <div class="option-content">
+              <div class="option-label">Just exploring</div>
+              <div class="option-desc">
+                See what's possible, get inspired, learn about AI
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q2: Technical comfort -->
+      <div class="question" data-q="1">
+        <div class="q-number">Question 2 of 3</div>
+        <div class="q-text">How technical are you?</div>
+        <div class="options" data-type="single">
+          <div class="option" data-value="no-code">
+            <div class="option-radio"></div>
+            <div class="option-content">
+              <div class="option-label">Not technical</div>
+              <div class="option-desc">I use apps, not build them</div>
+            </div>
+          </div>
+          <div class="option" data-value="low-code">
+            <div class="option-radio"></div>
+            <div class="option-content">
+              <div class="option-label">Somewhat technical</div>
+              <div class="option-desc">
+                Comfortable with no-code tools, basic automation
+              </div>
+            </div>
+          </div>
+          <div class="option" data-value="can-code">
+            <div class="option-radio"></div>
+            <div class="option-content">
+              <div class="option-label">Can code (with help)</div>
+              <div class="option-desc">
+                Use AI coding tools like Cursor or Claude Code
+              </div>
+            </div>
+          </div>
+          <div class="option" data-value="developer">
+            <div class="option-radio"></div>
+            <div class="option-content">
+              <div class="option-label">Developer</div>
+              <div class="option-desc">
+                Write code professionally, build complex systems
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Q3: Interests -->
+      <div class="question" data-q="2">
+        <div class="q-number">Question 3 of 3</div>
+        <div class="q-text">What interests you most?</div>
+        <div class="multi-hint">Pick up to 3</div>
+        <div class="options" data-type="multi" data-max="3">
+          <div class="option" data-value="marketing">
+            <div class="option-check">✓</div>
+            <div class="option-content">
+              <div class="option-label">Marketing & Content</div>
+            </div>
+          </div>
+          <div class="option" data-value="productivity">
+            <div class="option-check">✓</div>
+            <div class="option-content">
+              <div class="option-label">Productivity & Automation</div>
+            </div>
+          </div>
+          <div class="option" data-value="education">
+            <div class="option-check">✓</div>
+            <div class="option-content">
+              <div class="option-label">Learning & Education</div>
+            </div>
+          </div>
+          <div class="option" data-value="saas">
+            <div class="option-check">✓</div>
+            <div class="option-content">
+              <div class="option-label">Software & Apps</div>
+            </div>
+          </div>
+          <div class="option" data-value="services">
+            <div class="option-check">✓</div>
+            <div class="option-content">
+              <div class="option-label">Freelance & Services</div>
+            </div>
+          </div>
+          <div class="option" data-value="lifestyle">
+            <div class="option-check">✓</div>
+            <div class="option-content">
+              <div class="option-label">Lifestyle & Personal</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="nav">
+        <button class="btn-back" id="backBtn" style="visibility:hidden"
+          >Back</button
+        >
+        <button class="btn-next" id="nextBtn" disabled>Continue</button>
+      </div>
+    </div>
+
+    <!-- Results Section -->
+    <div id="results" style="display:none">
+      <div class="results-header">
+        <div class="header-label">{t("site.name")}</div>
+        <h1>Here's what fits you</h1>
+        <p class="header-sub">
+          Based on your answers, these articles are most relevant.
+        </p>
+      </div>
+      <div class="results-profile" id="profileTags"></div>
+      <div class="results-list" id="resultsList"></div>
+      <div class="results-actions">
+        <a href="/feed" class="btn-explore">Browse all articles</a>
+        <button class="btn-retake" id="retakeBtn">Retake quiz</button>
+      </div>
+    </div>
+  </div>
+</BaseLayout>
+
+<script define:vars={{ casesJson, toolsJson }}>
+  const CASES = JSON.parse(casesJson);
+  const TOOLS = JSON.parse(toolsJson);
+
+  const TECH_LEVELS = {
+    "no-code": 0,
+    "low-code": 1,
+    "can-code": 2,
+    developer: 3,
+  };
+
+  let currentQ = 0;
+  const answers = [null, null, []]; // goal, tech, interests[]
+
+  function getToolTitle(slug) {
+    const tool = TOOLS.find((t) => t.slug === slug);
+    return tool?.title || slug;
+  }
+
+  function selectSingle(el) {
+    el.parentElement
+      .querySelectorAll(".option")
+      .forEach((o) => o.classList.remove("selected"));
+    el.classList.add("selected");
+    answers[currentQ] = el.dataset.value;
+    document.getElementById("nextBtn").disabled = false;
+  }
+
+  function selectMulti(el) {
+    const max = parseInt(el.parentElement.dataset.max) || 99;
+    if (el.classList.contains("selected")) {
+      el.classList.remove("selected");
+      answers[currentQ] = answers[currentQ].filter(
+        (v) => v !== el.dataset.value,
+      );
+    } else {
+      const selected =
+        el.parentElement.querySelectorAll(".option.selected").length;
+      if (selected >= max) return;
+      el.classList.add("selected");
+      answers[currentQ].push(el.dataset.value);
+    }
+    document.getElementById("nextBtn").disabled =
+      answers[currentQ].length === 0;
+  }
+
+  function updateProgress() {
+    document.querySelectorAll(".progress-dot").forEach((dot, i) => {
+      dot.className = "progress-dot";
+      if (i < currentQ) dot.classList.add("done");
+      if (i === currentQ) dot.classList.add("current");
+    });
+  }
+
+  function showQuestion(idx) {
+    document
+      .querySelectorAll(".question")
+      .forEach((q) => q.classList.remove("active"));
+    document.querySelector(`[data-q="${idx}"]`).classList.add("active");
+    document.getElementById("backBtn").style.visibility =
+      idx === 0 ? "hidden" : "visible";
+
+    const hasAnswer = Array.isArray(answers[idx])
+      ? answers[idx].length > 0
+      : answers[idx] !== null;
+    document.getElementById("nextBtn").disabled = !hasAnswer;
+    document.getElementById("nextBtn").textContent =
+      idx === 2 ? "See results" : "Continue";
+    updateProgress();
+  }
+
+  function goNext() {
+    if (currentQ < 2) {
+      currentQ++;
+      showQuestion(currentQ);
+    } else {
+      currentQ = 3; // Mark as completed
+      showResults();
+    }
+  }
+
+  function goBack() {
+    if (currentQ > 0) {
+      currentQ--;
+      showQuestion(currentQ);
+    }
+  }
+
+  function scoreCase(c) {
+    const [goal, tech, interests] = answers;
+    let score = 0;
+    const cGoals = c.fits_goal || [];
+    const cDomains = c.fits_domain || [];
+    const cTech = c.needs_tech || "low-code";
+
+    // Goal matching (40 points)
+    const goalMap = {
+      build: ["quick-revenue", "build-asset"],
+      improve: ["augment"],
+      life: ["lifestyle"],
+      explore: ["learn"],
+    };
+    const matchingGoals = goalMap[goal] || [];
+    if (cGoals.some((g) => matchingGoals.includes(g))) {
+      score += 40;
+    }
+
+    // Tech level (30 points)
+    const userTech = TECH_LEVELS[tech];
+    const needsTech = TECH_LEVELS[cTech];
+    if (userTech >= needsTech) {
+      score += 30;
+    } else if (userTech === needsTech - 1) {
+      score += 15; // stretch but possible
+    }
+
+    // Interest matching (30 points)
+    const interestOverlap = interests.filter((i) => cDomains.includes(i));
+    score += Math.min(interestOverlap.length * 10, 30);
+
+    return { ...c, score };
+  }
+
+  function showResults() {
+    document.getElementById("quiz").style.display = "none";
+    document.getElementById("results").style.display = "block";
+
+    const [goal, tech, interests] = answers;
+
+    // Show profile tags
+    const labels = {
+      build: "Builder",
+      improve: "Optimizer",
+      life: "Life Hacker",
+      explore: "Explorer",
+      "no-code": "No-code",
+      "low-code": "Low-code",
+      "can-code": "AI-assisted coding",
+      developer: "Developer",
+      marketing: "Marketing",
+      productivity: "Productivity",
+      education: "Education",
+      saas: "Software",
+      services: "Services",
+      lifestyle: "Lifestyle",
+    };
+
+    const profileEl = document.getElementById("profileTags");
+    const tags = [goal, tech, ...interests].map((a) => labels[a] || a);
+    profileEl.innerHTML = tags.map((t) => `<span>${t}</span>`).join("");
+
+    // Score and sort cases
+    const scored = CASES.map(scoreCase).sort((a, b) => b.score - a.score);
+
+    // Render results - CaseCard style
+    const listEl = document.getElementById("resultsList");
+    listEl.innerHTML = scored
+      .slice(0, 6)
+      .map((c, i) => {
+        // Calculate match label style
+        const isHighMatch = c.score >= 60;
+        const matchClass = isHighMatch
+          ? "match-high"
+          : c.score >= 30
+            ? "match-med"
+            : "";
+        const matchLabel = isHighMatch
+          ? "Great Fit"
+          : c.score >= 30
+            ? "Good Fit"
+            : "Worth Exploring";
+
+        // Tools
+        const toolTags = c.tools
+          .map((t) => `<span class="tool">${getToolTitle(t)}</span>`)
+          .join("");
+
+        // Generate HTML matching CaseCard.astro structure with Transitions & Animations
+        return `
+    <a href="/${c.slug}" class="case-card-link animate-in" style="--delay: ${i}">
+      <div class="case">
+        <div class="case-header">
+          <div class="case-title" style="view-transition-name: title-${c.slug}">${c.title}</div>
+          <div class="case-stage ${matchClass}">${matchLabel} (${c.score}%)</div>
+        </div>
+        <div class="case-subtitle" style="view-transition-name: subtitle-${c.slug}">${c.subtitle}</div>
+        <div class="case-meta" style="view-transition-name: tags-${c.slug}">
+          ${toolTags}
+        </div>
+      </div>
+    </a>
+  `;
+      })
+      .join("");
+
+    // Smooth scroll to results
+    setTimeout(() => {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }, 100);
+  }
+
+  function saveState() {
+    const state = {
+      currentQ,
+      answers,
+    };
+    localStorage.setItem("arealisticdreamer_quiz_state", JSON.stringify(state));
+  }
+
+  function loadState() {
+    const saved = localStorage.getItem("arealisticdreamer_quiz_state");
+    if (saved) {
+      try {
+        const state = JSON.parse(saved);
+        answers[0] = state.answers[0];
+        answers[1] = state.answers[1];
+        answers[2] = state.answers[2] || [];
+        currentQ = state.currentQ || 0;
+
+        // Restore UI based on state
+        // Q1
+        if (answers[0]) {
+          const el = document.querySelector(
+            `[data-q="0"] .option[data-value="${answers[0]}"]`,
+          );
+          if (el) el.classList.add("selected");
+        }
+        // Q2
+        if (answers[1]) {
+          const el = document.querySelector(
+            `[data-q="1"] .option[data-value="${answers[1]}"]`,
+          );
+          if (el) el.classList.add("selected");
+        }
+        // Q3 (Multi)
+        if (answers[2] && Array.isArray(answers[2])) {
+          answers[2].forEach((val) => {
+            const el = document.querySelector(
+              `[data-q="2"] .option[data-value="${val}"]`,
+            );
+            if (el) el.classList.add("selected");
+          });
+        }
+
+        // If finished, show results, else show current question
+        if (currentQ >= 3) {
+          // completed
+          showResults();
+        } else {
+          showQuestion(currentQ);
+        }
+      } catch (e) {
+        console.error("Failed to load quiz state", e);
+      }
+    }
+  }
+
+  function retake() {
+    currentQ = 0;
+    answers[0] = null;
+    answers[1] = null;
+    answers[2] = [];
+    localStorage.removeItem("arealisticdreamer_quiz_state"); // Clear state
+
+    document
+      .querySelectorAll(".option")
+      .forEach((o) => o.classList.remove("selected"));
+    document.getElementById("quiz").style.display = "block";
+    document.getElementById("results").style.display = "none";
+    showQuestion(0);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  // Event listeners
+  document.querySelectorAll(".option").forEach((el) => {
+    el.addEventListener("click", () => {
+      const type = el.parentElement.dataset.type;
+      if (type === "multi") {
+        selectMulti(el);
+      } else {
+        selectSingle(el);
+        // Auto advance for single select logic could go here if desired,
+        // but keeping manual 'Continue' for now as per original code.
+      }
+      saveState(); // Save after selection
+    });
+  });
+
+  document.getElementById("nextBtn").addEventListener("click", () => {
+    goNext();
+    saveState(); // Save after navigation
+  });
+
+  document.getElementById("backBtn").addEventListener("click", () => {
+    goBack();
+    saveState();
+  });
+
+  document.getElementById("retakeBtn").addEventListener("click", retake);
+
+  // Initialize
+  // updateProgress(); // Removed, handled by loadState or showQuestion
+  loadState();
+</script>
+
+<style>
+  /* Animations */
+  .animate-in {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeUp 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    animation-delay: calc(var(--delay) * 0.1s);
+  }
+
+  @keyframes fadeUp {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .quiz-container {
+    padding: 48px 0;
+    max-width: 560px;
+    margin: 0 auto;
+  }
+
+  .header-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-accent);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 14px;
+  }
+
+  h1 {
+    font-size: 32px;
+    font-weight: 600;
+    letter-spacing: -0.03em;
+    margin-bottom: 12px;
+  }
+
+  .header-sub {
+    font-size: 17px;
+    color: var(--color-soft);
+    margin-bottom: 40px;
+  }
+
+  /* Progress */
+  .progress {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 40px;
+  }
+
+  .progress-dot {
+    width: 32px;
+    height: 4px;
+    background: #e5e5e5;
+    border-radius: 2px;
+    transition: all 0.3s;
+  }
+
+  .progress-dot.current {
+    background: var(--color-accent);
+    width: 48px;
+  }
+
+  .progress-dot.done {
+    background: var(--color-accent);
+  }
+
+  /* Questions */
+  .question {
+    display: none;
+  }
+
+  .question.active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .q-number {
+    font-size: 13px;
+    color: var(--color-soft);
+    margin-bottom: 8px;
+  }
+
+  .q-text {
+    font-size: 24px;
+    font-weight: 600;
+    margin-bottom: 24px;
+    letter-spacing: -0.02em;
+  }
+
+  .multi-hint {
+    font-size: 14px;
+    color: var(--color-soft);
+    margin-bottom: 16px;
+  }
+
+  /* Options */
+  .options {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .option {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 16px 18px;
+    border: 1.5px solid #e5e5e5;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .option:hover {
+    border-color: var(--color-accent-mid);
+    background: #fafafa;
+  }
+
+  .option.selected {
+    border-color: var(--color-accent);
+    background: var(--color-accent-soft);
+  }
+
+  .option-radio {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #ccc;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 2px;
+    transition: all 0.2s;
+  }
+
+  .option.selected .option-radio {
+    border-color: var(--color-accent);
+    background: var(--color-accent);
+    box-shadow: inset 0 0 0 4px var(--color-accent-soft);
+  }
+
+  .option-check {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #ccc;
+    border-radius: 6px;
+    flex-shrink: 0;
+    margin-top: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: transparent;
+    transition: all 0.2s;
+  }
+
+  .option.selected .option-check {
+    border-color: var(--color-accent);
+    background: var(--color-accent);
+    color: white;
+  }
+
+  .option-label {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--color-ink);
+  }
+
+  .option-desc {
+    font-size: 14px;
+    color: var(--color-soft);
+    margin-top: 4px;
+  }
+
+  /* Navigation */
+  .nav {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 40px;
+  }
+
+  .btn-back,
+  .btn-next {
+    font-size: 15px;
+    font-weight: 600;
+    padding: 12px 28px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-back {
+    background: transparent;
+    border: none;
+    color: var(--color-soft);
+  }
+
+  .btn-back:hover {
+    color: var(--color-ink);
+  }
+
+  .btn-next {
+    background: var(--color-ink);
+    color: white;
+    border: none;
+  }
+
+  .btn-next:hover:not(:disabled) {
+    opacity: 0.9;
+  }
+
+  .btn-next:disabled {
+    background: #e5e5e5;
+    color: #aaa;
+    cursor: not-allowed;
+  }
+
+  /* Results - Styled to match CaseCard */
+  .results-header {
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid #e8e8e5;
+  }
+
+  .results-profile {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 40px;
+  }
+
+  .results-profile span {
+    font-size: 13px;
+    padding: 4px 12px;
+    background: var(--color-accent-soft);
+    color: var(--color-accent);
+    border-radius: 100px;
+    font-weight: 500;
+  }
+
+  /* Replicating CaseCard Grid/List Style */
+  .results-list {
+    display: flex;
+    flex-direction: column;
+    border-bottom: 1px solid #e8e8e5; /* Start closing border */
+  }
+
+  /* CaseCard Styles Replica */
+  :global(.case-card-link) {
+    text-decoration: none;
+    color: inherit;
+    display: block;
+  }
+
+  :global(.case) {
+    padding: 28px 0;
+    border-top: 1px solid #e8e8e5;
+    transition: background-color 0.2s;
+  }
+
+  :global(.case:hover) {
+    background-color: #fafaf9;
+  }
+
+  :global(.case-header) {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 8px;
+    gap: 16px;
+  }
+
+  :global(.case-title) {
+    font-family: var(--font-heading);
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    color: var(--color-ink);
+  }
+
+  :global(.case-stage) {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--color-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+  }
+
+  :global(.case-stage.match-high) {
+    color: #16a34a;
+  }
+  :global(.case-stage.match-med) {
+    color: var(--color-accent);
+  }
+
+  :global(.case-subtitle) {
+    font-size: 16px;
+    color: var(--color-soft);
+    margin-bottom: 16px;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  :global(.case-meta) {
+    font-size: 13px;
+    color: var(--color-soft);
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  :global(.case-meta span) {
+    padding: 4px 10px;
+    border-radius: 4px;
+    background: #f3f3f0;
+  }
+
+  :global(.case-meta .tool) {
+    color: var(--color-accent);
+    background: var(--color-accent-soft);
+  }
+
+  .results-actions {
+    margin-top: 48px;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .btn-explore {
+    font-size: 15px;
+    font-weight: 600;
+    padding: 12px 32px;
+    background: var(--color-ink);
+    color: white;
+    border-radius: 100px;
+    text-decoration: none;
+    transition: opacity 0.2s;
+  }
+
+  .btn-explore:hover {
+    opacity: 0.9;
+    color: white;
+  }
+
+  .btn-retake {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-soft);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 12px;
+  }
+
+  .btn-retake:hover {
+    color: var(--color-ink);
+    text-decoration: underline;
+  }
+
+  @media (max-width: 480px) {
+    .quiz-container {
+      padding: 32px 0;
+    }
+    h1 {
+      font-size: 26px;
+    }
+    .q-text {
+      font-size: 20px;
+    }
+    :global(.case-header) {
+      flex-direction: column;
+      gap: 4px;
+    }
+    :global(.case-stage) {
+      margin-left: 0;
+    }
+    .results-actions {
+      flex-direction: column;
+    }
+    .btn-explore {
+      width: 100%;
+      text-align: center;
+    }
+  }
+</style>

@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+.wrangler/
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# Config (use .example versions)
+thefeed.config.ts
+!thefeed.config.example.ts
+workers/ingest/wrangler.toml
+!workers/ingest/wrangler.example.toml
+
+# Build output
+app/dist/
+app/.astro/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+
+# Claude/AI
+.claude/

@@ -1,0 +1,41 @@
+name = "thefeed-ingest"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+[vars]
+GITHUB_REPO = "your-username/thefeed"
+GITHUB_BRANCH = "draft"
+MEDIA_BASE_URL = "https://media.your-domain.com"
+# AI Provider: "gemini" or "minimax"
+AI_PROVIDER = "gemini"
+# Gemini config
+GEMINI_MODEL = "gemini-2.5-flash"
+# MiniMax config (if using MiniMax)
+MINIMAX_MODEL = "MiniMax-M2.5"
+
+[[r2_buckets]]
+binding = "MEDIA"
+bucket_name = "your-bucket-name"
+
+[[kv_namespaces]]
+binding = "SESSIONS"
+id = "your-kv-namespace-id"
+
+# Queue for async AI processing
+[[queues.producers]]
+queue = "thefeed-ai-tasks"
+binding = "AI_QUEUE"
+
+[[queues.consumers]]
+queue = "thefeed-ai-tasks"
+max_batch_size = 1
+max_batch_timeout = 5
+max_retries = 2
+dead_letter_queue = "thefeed-ai-dlq"
+
+# Secrets (set via `wrangler secret put`):
+# GITHUB_TOKEN — GitHub personal access token with repo scope
+# INGEST_SECRET — shared secret to authenticate POST /ingest requests
+# TELEGRAM_TOKEN — Telegram bot token from @BotFather
+# GEMINI_API_KEY — Google AI Studio API key
+# MINIMAX_API_KEY — MiniMax API key (if using MiniMax)

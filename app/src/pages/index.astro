@@ -1,0 +1,73 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import FeedCard from "../components/feed/FeedCard.astro";
+import StoriesRow from "../components/feed/StoriesRow.astro";
+import StreamBox from "../components/stream/StreamBox.astro";
+import { t } from "../lib/i18n";
+import { getPosts, getStream } from "../lib/data";
+import type { ShortVideoPost } from "../lib/types";
+
+const shortVideos = (await getPosts("short-video")) as ShortVideoPost[];
+const latestPosts = (await getPosts())
+  .filter((p) => p.format !== "short-video")
+  .slice(0, 6);
+const streamItems = await getStream();
+---
+
+<BaseLayout>
+  <header class="pt-14 pb-10 md:pt-20 md:pb-14 text-center">
+    <div
+      class="text-[13px] font-semibold text-accent uppercase tracking-widest mb-4"
+    >
+      {t("site.name")}
+    </div>
+    <h1
+      class="text-3xl sm:text-4xl md:text-5xl font-semibold tracking-tight leading-tight mb-4"
+    >
+      {t("home.hero")}
+    </h1>
+    <p class="text-lg text-soft max-w-md mx-auto mb-9 leading-relaxed">
+      {t("home.subtitle")}
+    </p>
+    <div class="flex gap-3.5 justify-center max-sm:flex-col max-sm:px-8">
+      <a
+        href="/feed"
+        class="px-7 py-3 rounded-lg text-[15px] font-semibold bg-ink text-white hover:opacity-85 transition-opacity"
+        >{t("home.cta_explore")}</a
+      >
+      <!-- <a
+        href="/match"
+        class="px-7 py-3 rounded-lg text-[15px] font-semibold bg-accent-soft text-accent hover:opacity-85 transition-opacity"
+        >{t("home.cta_match")}</a
+      > -->
+    </div>
+  </header>
+
+  <!-- Stories row -->
+  <StoriesRow videos={shortVideos} />
+
+  <!-- Stream box -->
+  <StreamBox items={streamItems} />
+
+  <section class="pb-16">
+    <h2
+      class="font-body text-[13px] font-semibold text-soft uppercase tracking-widest mb-8"
+    >
+      Mới nhất
+    </h2>
+    <div class="flex flex-col gap-5">
+      {
+        latestPosts.map((post, i) => (
+          <div class="animate-in" style={`--delay: ${i}`}>
+            <FeedCard post={post} />
+          </div>
+        ))
+      }
+    </div>
+    <a
+      href="/feed"
+      class="block mt-10 text-sm font-medium text-soft hover:text-ink transition-colors"
+      >Xem tất cả →</a
+    >
+  </section>
+</BaseLayout>

@@ -1,0 +1,226 @@
+---
+/**
+ * /stream — Full stream page with all stream items.
+ * Includes filter pills for link/post types and infinite scroll.
+ */
+import BaseLayout from "../../layouts/BaseLayout.astro";
+import StreamCard from "../../components/stream/StreamCard.astro";
+import { getStream } from "../../lib/data";
+import type { StreamItem } from "../../lib/types";
+import { Rss } from "@lucide/astro";
+
+const streamItems = (await getStream()).slice(0, 10);
+const types = [
+    { value: "all", label: "Tất cả" },
+    { value: "link", label: "Liên kết" },
+    { value: "post", label: "Bài ngắn" },
+];
+---
+
+<BaseLayout title="Stream">
+    <header class="pt-10 pb-6 md:pt-12 md:pb-8">
+        <div class="flex items-center gap-3 mb-2">
+            <h1 class="text-3xl md:text-4xl font-semibold tracking-tight">
+                Stream
+            </h1>
+            <a
+                href="/stream/rss.xml"
+                class="text-[var(--color-soft)] hover:text-[var(--color-accent)] transition-colors"
+                title="RSS Feed"
+            >
+                <Rss class="w-5 h-5" />
+            </a>
+        </div>
+        <p class="text-lg text-soft max-w-lg leading-relaxed">
+            Cập nhật nhanh — tin tức, suy nghĩ, và link hay mỗi ngày.
+        </p>
+    </header>
+
+    <!-- Type filter pills -->
+    <div class="flex gap-2 flex-wrap mb-8" id="streamFilters">
+        {
+            types.map((t) => (
+                <button
+                    type="button"
+                    class:list={[
+                        "stream-type-pill px-3.5 py-1.5 rounded-full text-sm font-medium border transition-all cursor-pointer",
+                        t.value === "all"
+                            ? "bg-ink text-white border-ink"
+                            : "border-border text-soft hover:border-soft hover:text-ink",
+                    ]}
+                    data-type={t.value}
+                >
+                    {t.label}
+                </button>
+            ))
+        }
+    </div>
+
+    <!-- Stream items -->
+    <div id="streamContainer" class="flex flex-col gap-4">
+        {
+            streamItems.map((item, i) => (
+                <div class="animate-in" style={`--delay: ${i}`}>
+                    <StreamCard item={item} compact={false} />
+                </div>
+            ))
+        }
+    </div>
+
+    <!-- Infinite scroll sentinel -->
+    <div id="streamSentinel" class="py-12 flex justify-center">
+        <div id="streamLoader" class="text-sm text-faint">Đang tải thêm...</div>
+    </div>
+</BaseLayout>
+
+<script>
+    document.addEventListener("astro:page-load", () => {
+        let currentPage = 1;
+        let currentType = "all";
+        let isLoading = false;
+        let hasMore = true;
+
+        const container = document.getElementById("streamContainer");
+        const sentinel = document.getElementById("streamSentinel");
+        const loader = document.getElementById("streamLoader");
+        if (!container || !sentinel) return;
+
+        // Type filter pills
+        document.querySelectorAll(".stream-type-pill").forEach((btn) => {
+            btn.addEventListener("click", async () => {
+                const type = (btn as HTMLElement).dataset.type!;
+                if (type === currentType) return;
+
+                document.querySelectorAll(".stream-type-pill").forEach((b) => {
+                    b.classList.remove("bg-ink", "text-white", "border-ink");
+                    b.classList.add("border-border", "text-soft");
+                });
+                btn.classList.add("bg-ink", "text-white", "border-ink");
+                btn.classList.remove("border-border", "text-soft");
+
+                currentType = type;
+                currentPage = 0;
+                hasMore = true;
+                container.innerHTML = "";
+                await loadItems();
+            });
+        });
+
+        async function loadItems() {
+            if (isLoading || !hasMore) return;
+            isLoading = true;
+            if (loader) {
+                loader.textContent = "Đang tải...";
+                loader.classList.remove("hidden");
+            }
+
+            try {
+                currentPage++;
+                const res = await fetch(
+                    `/api/stream?page=${currentPage}&type=${currentType}`,
+                );
+                const data = await res.json();
+                appendItems(data.items);
+                hasMore = data.hasMore;
+            } catch (e) {
+                console.error("Stream load error:", e);
+            } finally {
+                isLoading = false;
+                if (!hasMore && loader) {
+                    loader.textContent = "Đã xem hết ✓";
+                }
+            }
+        }
+
+        function relativeTime(dateStr: string): string {
+            const now = new Date();
+            const date = new Date(dateStr);
+            const diffMs = now.getTime() - date.getTime();
+            const diffMin = Math.floor(diffMs / 60000);
+            if (diffMin < 1) return "vừa xong";
+            if (diffMin < 60) return `${diffMin}m trước`;
+            const diffHr = Math.floor(diffMin / 60);
+            if (diffHr < 24) return `${diffHr}h trước`;
+            const diffDay = Math.floor(diffHr / 24);
+            if (diffDay < 7) return `${diffDay} ngày trước`;
+            return date.toLocaleDateString("vi-VN", {
+                day: "numeric",
+                month: "long",
+            });
+        }
+
+        function appendItems(items: any[]) {
+            items.forEach((item, i) => {
+                const wrapper = document.createElement("div");
+                wrapper.className = "animate-in";
+                wrapper.style.setProperty("--delay", String(i));
+                wrapper.innerHTML = renderStreamCard(item);
+                container!.appendChild(wrapper);
+            });
+        }
+
+        function getExcerpt(html: string | undefined, maxLength = 200): string {
+            if (!html) return "";
+            const text = html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+            const firstPara = text.split(/[.!?]\s/)[0];
+            if (firstPara.length <= maxLength) return firstPara + (text.length > firstPara.length ? '...' : '');
+            return text.slice(0, maxLength).trim() + '...';
+        }
+
+        function renderStreamCard(item: any): string {
+            const isLink = item.type === "link";
+            const iconSvg = isLink
+                ? `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>`
+                : `<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7.9 20A9 9 0 1 0 4 16.1L2 22Z"/></svg>`;
+            const iconClass = isLink
+                ? "bg-blue-50 text-blue-600"
+                : "bg-violet-50 text-violet-600";
+
+            let tagsHtml = "";
+            if (item.tags && item.tags.length > 0) {
+                tagsHtml = `<div class="flex flex-wrap gap-1.5">${item.tags.map((tag: string) => `<span class="text-[11px] px-2 py-0.5 rounded-full bg-[var(--color-ink)]/[0.04] text-[var(--color-faint)] font-medium">#${tag}</span>`).join("")}</div>`;
+            }
+
+            const excerpt = getExcerpt(item.body);
+            const hasMoreContent = item.body && item.body.length > 250;
+
+            let actionsHtml = '<div class="flex items-center gap-3">';
+            if (hasMoreContent) {
+                actionsHtml += `<a href="/stream/${item.slug}" class="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-accent)] hover:underline">Đọc tiếp →</a>`;
+            }
+            if (isLink && item.url) {
+                actionsHtml += `<a href="${item.url}" target="_blank" rel="noopener noreferrer" class="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-soft)] hover:text-[var(--color-accent)] hover:underline">Nguồn gốc <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>`;
+            }
+            actionsHtml += '</div>';
+
+            return `<div class="stream-card rounded-xl border border-[var(--color-border)] bg-[var(--color-card,white)] p-5 transition-shadow hover:shadow-sm">
+                <div class="flex items-start gap-3 mb-3">
+                    <span class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${iconClass}">${iconSvg}</span>
+                    <div class="flex-1 min-w-0">
+                        <h3 class="font-semibold text-lg text-[var(--color-ink)] leading-snug">${item.title}</h3>
+                        <div class="flex items-center gap-2 mt-1 text-xs text-[var(--color-faint)]">
+                            <time>${relativeTime(item.date)}</time>
+                            ${isLink && item.source ? `<span>·</span><span class="font-medium">${item.source}</span>` : ""}
+                        </div>
+                    </div>
+                </div>
+                ${excerpt ? `<p class="text-base text-[var(--color-soft)] leading-relaxed mb-3">${excerpt}</p>` : ""}
+                ${actionsHtml}
+                <div class="flex items-center justify-between mt-3 pt-3 border-t border-[var(--color-border)]/[0.5]">
+                    ${tagsHtml}
+                </div>
+            </div>`;
+        }
+
+        // Infinite scroll
+        const observer = new IntersectionObserver(
+            (entries) => {
+                if (entries[0].isIntersecting && hasMore && !isLoading) {
+                    loadItems();
+                }
+            },
+            { rootMargin: "200px" },
+        );
+        observer.observe(sentinel);
+    });
+</script>

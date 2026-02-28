@@ -1,0 +1,90 @@
+---
+import { t } from "../lib/i18n";
+import { getFilterOptions, getTools } from "../lib/data";
+
+const { tools: toolSlugs, models, stages } = await getFilterOptions();
+const allTools = await getTools();
+
+function getToolTitle(slug: string): string {
+  const tool = allTools.find((t) => t.slug === slug);
+  return tool?.title || slug;
+}
+
+// Show only popular tools
+const popularTools = ["claude-api", "cursor", "chatgpt", "midjourney"];
+const displayTools = toolSlugs.filter((t) => popularTools.includes(t));
+---
+
+<div class="filters">
+  <button class="filter-btn active" data-filter="all"
+    >{t("explore.filter_all")}</button
+  >
+  {
+    displayTools.map((slug) => (
+      <button class="filter-btn" data-filter={slug}>
+        {getToolTitle(slug)}
+      </button>
+    ))
+  }
+  <button class="filter-btn" data-filter="profitable">Profitable</button>
+</div>
+
+<style>
+  .filters {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 32px;
+  }
+
+  .filter-btn {
+    font-size: 14px;
+    font-weight: 500;
+    padding: 8px 16px;
+    border-radius: 100px;
+    border: 1.5px solid #ddd;
+    background: transparent;
+    color: var(--color-soft);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .filter-btn:hover {
+    border-color: var(--color-soft);
+    color: var(--color-ink);
+  }
+
+  .filter-btn.active {
+    background: var(--color-ink);
+    color: #fff;
+    border-color: var(--color-ink);
+  }
+</style>
+
+<script>
+  function handleFilterClick(e: Event) {
+    const btn = e.currentTarget as HTMLElement;
+    document
+      .querySelectorAll(".filter-btn")
+      .forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    const f = btn.dataset.filter?.toLowerCase() || "all";
+    document.querySelectorAll(".case").forEach((c) => {
+      if (f === "all") {
+        (c as HTMLElement).style.display = "";
+        return;
+      }
+      const tags = ((c as HTMLElement).dataset.tags || "").toLowerCase();
+      (c as HTMLElement).style.display = tags.includes(f) ? "" : "none";
+    });
+  }
+
+  function initFilterPills() {
+    document.querySelectorAll(".filter-btn").forEach((btn) => {
+      btn.removeEventListener("click", handleFilterClick);
+      btn.addEventListener("click", handleFilterClick);
+    });
+  }
+
+  document.addEventListener("astro:page-load", initFilterPills);
+</script>

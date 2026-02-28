@@ -1,0 +1,241 @@
+---
+/**
+ * FeedCardAudioPlaylist — Inline-playable playlist card with wavesurfer.js.
+ * Clicking any track plays it with a real waveform shown inline.
+ */
+import type { AudioPlaylistPost } from "../../lib/types";
+
+interface Props {
+    post: AudioPlaylistPost;
+}
+
+const { post } = Astro.props;
+
+function formatDuration(seconds: number): string {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    if (h > 0) return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+    return `${m}:${s.toString().padStart(2, "0")}`;
+}
+
+const totalDuration = post.tracks.reduce((sum, t) => sum + t.duration, 0);
+---
+
+<div
+    class="group rounded-xl border border-border bg-card overflow-hidden transition-shadow hover:shadow-sm"
+    data-playlist-card={post.slug}
+>
+    <!-- Header -->
+    <div class="flex gap-4 p-4">
+        {
+            post.coverImage ? (
+                <div class="w-16 h-16 rounded-lg overflow-hidden shrink-0">
+                    <img src={post.coverImage} alt={post.title} class="w-full h-full object-cover" loading="lazy" />
+                </div>
+            ) : (
+                <div class="w-16 h-16 rounded-lg bg-gradient-to-br from-accent-soft to-accent-mid flex items-center justify-center shrink-0">
+                    <svg class="w-7 h-7 text-accent" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <><path d="M9 18V5l12-2v13" /><circle cx="6" cy="18" r="3" /><circle cx="18" cy="16" r="3" /></>
+                    </svg>
+                </div>
+            )
+        }
+        <div class="flex-1 min-w-0">
+            <a href={`/${post.slug}`} class="block hover:text-accent transition-colors">
+                <h3 class="font-heading font-semibold text-base">{post.title}</h3>
+            </a>
+            {post.subtitle && <p class="text-sm text-soft mt-0.5 line-clamp-1">{post.subtitle}</p>}
+            <div class="flex gap-3 mt-2 text-xs text-faint">
+                <span>{post.tracks.length} tracks</span>
+                <span>·</span>
+                <span>{formatDuration(totalDuration)}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Track list -->
+    <div class="border-t border-border">
+        {post.tracks.map((track, i) => (
+            <div class="playlist-track" data-track-index={i} data-track-url={track.audioUrl} data-track-title={track.title} data-playlist-slug={post.slug}>
+                <div class="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-ink/[0.03] cursor-pointer transition-colors track-row">
+                    <!-- Play indicator / track number -->
+                    <span class="track-num text-faint text-xs w-5 text-center shrink-0">
+                        <span class="num-text">{i + 1}</span>
+                        <svg class="play-indicator hidden w-3.5 h-3.5 text-accent" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                        <svg class="pause-indicator hidden w-3.5 h-3.5 text-accent" viewBox="0 0 24 24" fill="currentColor"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>
+                    </span>
+                    <span class="flex-1 truncate track-title">{track.title}</span>
+                    <span class="text-xs text-faint">{formatDuration(track.duration)}</span>
+                </div>
+                <!-- Waveform slot (shown when this track is active) -->
+                <div class="track-waveform px-4 pb-2 hidden">
+                    <div class="waveform-el" id={`playlist-wave-${post.slug}-${i}`}></div>
+                    <div class="flex justify-between text-[10px] text-faint mt-1 tabular-nums">
+                        <span class="track-current">0:00</span>
+                        <span class="track-duration">{formatDuration(track.duration)}</span>
+                    </div>
+                </div>
+            </div>
+        ))}
+    </div>
+</div>
+
+<style>
+  /* Default: show track number, hide both indicators */
+  .playlist-track .play-indicator,
+  .playlist-track .pause-indicator { display: none; }
+  
+  /* Hover (not active, not playing): show play icon, hide number */
+  .playlist-track:not(.active) .track-row:hover .num-text { display: none; }
+  .playlist-track:not(.active) .track-row:hover .play-indicator { display: block !important; }
+  
+  /* Active (paused): show play icon, hide number, accent title */
+  .playlist-track.active .num-text { display: none; }
+  .playlist-track.active .track-title { color: var(--color-accent); font-weight: 500; }
+  .playlist-track.active:not(.playing) .play-indicator { display: block !important; }
+  
+  /* Playing: show pause icon only */
+  .playlist-track.playing .play-indicator { display: none !important; }
+  .playlist-track.playing .pause-indicator { display: block !important; }
+  
+  .waveform-el { border-radius: 4px; overflow: hidden; cursor: pointer; }
+  .tabular-nums { font-variant-numeric: tabular-nums; }
+</style>
+
+<script>
+    import WaveSurfer from 'wavesurfer.js';
+
+    document.addEventListener("astro:page-load", () => {
+        const trackWavesurfers = new Map<string, any>();
+        let isSyncing = false; // prevents seekTo ↔ seeking feedback loop
+
+        function formatTime(s: number): string {
+            const m = Math.floor(s / 60);
+            const sec = Math.floor(s % 60);
+            return `${m}:${sec.toString().padStart(2, '0')}`;
+        }
+
+        // Listen for global player time updates to sync waveform progress
+        window.addEventListener('global-player-timeupdate', ((e: CustomEvent) => {
+            const { currentTime, duration, src } = e.detail;
+            trackWavesurfers.forEach((ws, key) => {
+                const trackEl = document.querySelector(`[data-track-key="${key}"]`) as HTMLElement;
+                if (!trackEl) return;
+                const trackUrl = trackEl.dataset.trackUrl!;
+                if (src && src.includes(trackUrl) && duration > 0) {
+                    isSyncing = true;
+                    ws.seekTo(currentTime / duration);
+                    isSyncing = false;
+                    const currentEl = trackEl.querySelector('.track-current') as HTMLElement;
+                    if (currentEl) currentEl.textContent = formatTime(currentTime);
+                }
+            });
+        }) as EventListener);
+
+        // Listen for global player state to sync play/pause icons
+        window.addEventListener('global-player-state', ((e: CustomEvent) => {
+            const { playing, src } = e.detail;
+            document.querySelectorAll('.playlist-track').forEach(trackEl => {
+                const el = trackEl as HTMLElement;
+                const trackUrl = el.dataset.trackUrl!;
+                const isThisTrack = src && src.includes(trackUrl);
+                if (isThisTrack && playing) {
+                    el.classList.add('active', 'playing');
+                } else if (isThisTrack && !playing) {
+                    el.classList.add('active');
+                    el.classList.remove('playing');
+                } else {
+                    el.classList.remove('active', 'playing');
+                    el.querySelector('.track-waveform')?.classList.add('hidden');
+                }
+            });
+        }) as EventListener);
+
+        document.querySelectorAll('.playlist-track').forEach(trackEl => {
+            const row = trackEl.querySelector('.track-row') as HTMLElement;
+            const el = trackEl as HTMLElement;
+            const url = el.dataset.trackUrl!;
+            const title = el.dataset.trackTitle!;
+            const index = parseInt(el.dataset.trackIndex!);
+            const playlistSlug = el.dataset.playlistSlug!;
+            const key = `${playlistSlug}-${index}`;
+
+            // Set a data attribute for easy lookup
+            el.dataset.trackKey = key;
+
+            row.addEventListener('click', () => {
+                const globalAudioEl = (window as any).globalAudioEl as HTMLAudioElement;
+                const globalPlay = (window as any).globalPlayerPlay;
+
+                // If this track is already playing, toggle
+                if (globalAudioEl && globalAudioEl.src.includes(url)) {
+                    if (globalAudioEl.paused) globalAudioEl.play().catch(() => {});
+                    else globalAudioEl.pause();
+                    return;
+                }
+
+                // Reset all tracks
+                document.querySelectorAll('.playlist-track').forEach(t => {
+                    (t as HTMLElement).classList.remove('active', 'playing');
+                    t.querySelector('.track-waveform')?.classList.add('hidden');
+                });
+
+                // Activate this track
+                el.classList.add('active');
+                const waveWrap = el.querySelector('.track-waveform') as HTMLElement;
+                waveWrap.classList.remove('hidden');
+
+                // Create wavesurfer if needed (visual only)
+                if (!trackWavesurfers.has(key)) {
+                    const containerId = `playlist-wave-${playlistSlug}-${index}`;
+                    const ws = WaveSurfer.create({
+                        container: `#${containerId}`,
+                        waveColor: '#c4b5fd',
+                        progressColor: '#1d4ed8',
+                        cursorColor: '#1d4ed8',
+                        cursorWidth: 2,
+                        barWidth: 2,
+                        barGap: 1,
+                        barRadius: 2,
+                        height: 36,
+                        url: url,
+                        interact: true,
+                        backend: 'WebAudio',
+                    });
+
+                    ws.setVolume(0);
+                    ws.on('ready', () => ws.setVolume(0));
+
+                    // Click on waveform to seek global audio
+                    ws.on('seeking', (currentTime: number) => {
+                        if (isSyncing) return; // ignore programmatic syncs
+                        if (globalAudioEl && globalAudioEl.src.includes(url)) {
+                            globalAudioEl.currentTime = currentTime;
+                        }
+                    });
+
+                    trackWavesurfers.set(key, ws);
+                }
+
+                // Build playlist from all tracks in this card
+                const playlistCard = el.closest('[data-playlist-card]');
+                const allTracks = playlistCard ? Array.from(playlistCard.querySelectorAll('.playlist-track')) as HTMLElement[] : [];
+                const playlist = allTracks.map(t => ({
+                    url: t.dataset.trackUrl!,
+                    title: t.dataset.trackTitle!,
+                    subtitle: '',
+                    coverImage: '',
+                    slug: `${t.dataset.playlistSlug}-${t.dataset.trackIndex}`,
+                }));
+
+                // Play via global player
+                if (globalPlay) {
+                    const playlistTitle = playlistCard?.querySelector('h3')?.textContent || 'Playlist';
+                    globalPlay(url, `${playlistTitle} — ${title}`, '', '', `${playlistSlug}-${index}`, playlist);
+                }
+            });
+        });
+    });
+</script>
+

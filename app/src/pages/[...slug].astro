@@ -1,0 +1,528 @@
+---
+/**
+ * /[...slug] — Catch-all route for post detail pages
+ */
+import BaseLayout from "../layouts/BaseLayout.astro";
+import ShareButton from "../components/ShareButton.astro";
+import FeedCard from "../components/feed/FeedCard.astro";
+import { t } from "../lib/i18n";
+import { getPost, getPosts, getTools, getBuilder } from "../lib/data";
+import { getCollection, render } from "astro:content";
+import type {
+    Post,
+    ArticlePost,
+    VideoEmbedPost,
+    AudioPost,
+    AudioPlaylistPost,
+    GalleryPost,
+} from "../lib/types";
+
+const rawSlug = Astro.params.slug || "";
+const slug = rawSlug.replace(/\/+$/, "");
+
+// ─── Post detail rendering ───
+const post = await getPost(slug);
+
+if (!post) {
+    return new Response(null, { status: 404, statusText: "Not Found" });
+}
+
+// Get rendered MDX body content (for migrated posts with markdown body)
+const entries = await getCollection("posts");
+const entry = entries.find((e) => e.id.replace(/\.mdx?$/, "") === slug);
+const { Content } = entry ? await render(entry) : { Content: null };
+
+const tools = await getTools();
+const builder = post.author ? await getBuilder(post.author) : null;
+
+function getToolTitle(toolSlug: string): string {
+    const tool = tools.find((t) => t.slug === toolSlug);
+    return tool?.title || toolSlug;
+}
+
+// Fetch related posts (same tags, excluding current)
+const allPosts = await getPosts();
+const relatedPosts = allPosts
+    .filter((p) => p.slug !== post.slug) // Exclude current
+    .filter((p) => p.tags.some((t) => post.tags.includes(t))) // Match by tag
+    .slice(0, 2); // Limit to 2 posts for footer
+
+function formatDuration(seconds: number): string {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    if (h > 0)
+        return `${h}:${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
+    return `${m}:${s.toString().padStart(2, "0")}`;
+}
+---
+
+<BaseLayout
+    title={post.title}
+    description={post.subtitle}
+    image={post.thumbnail}
+    article
+>
+    <article class="max-w-2xl mx-auto pb-16">
+        <!-- Back + meta bar -->
+        <div class="flex items-center justify-between pt-8 pb-6">
+            <button
+                id="backBtn"
+                type="button"
+                class="text-sm text-soft hover:text-ink transition-colors cursor-pointer"
+                >← Quay lại</button
+            >
+            <ShareButton post={post} />
+        </div>
+
+        <!-- Header -->
+        <header class="mb-8 animate-in" style="--delay: 0">
+            <div
+                class="text-[13px] font-semibold text-accent uppercase tracking-widest mb-3"
+            >
+                {
+                    post.format === "article"
+                        ? "Bài viết"
+                        : post.format === "short-video"
+                          ? "Video ngắn"
+                          : post.format === "video-embed"
+                            ? "Talk"
+                            : post.format === "audio"
+                              ? "Podcast"
+                              : post.format === "audio-playlist"
+                                ? "Playlist"
+                                : post.format === "quote"
+                                  ? "Trích dẫn"
+                                  : "Ảnh"
+                }
+            </div>
+            <h1
+                class="text-3xl md:text-4xl font-semibold tracking-tight leading-tight mb-3"
+                transition:name={`title-${slug}`}
+            >
+                {post.title}
+            </h1>
+            {
+                post.subtitle && (
+                    <p
+                        class="text-xl text-soft leading-relaxed"
+                        transition:name={`subtitle-${slug}`}
+                    >
+                        {post.subtitle}
+                    </p>
+                )
+            }
+            {
+                post.date && (
+                    <time class="block mt-3 text-sm text-faint">
+                        {new Date(post.date).toLocaleDateString("vi-VN", {
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                        })}
+                    </time>
+                )
+            }
+        </header>
+
+        {
+            /* ==============================
+        FORMAT: ARTICLE
+        ============================== */
+        }
+        {
+            post.format === "article" &&
+                (() => {
+                    const a = post as ArticlePost;
+                    return (
+                        <div>
+                            {a.heroImage && (
+                                <div class="mb-8 animate-in" style="--delay: 1">
+                                    <img
+                                        src={a.heroImage}
+                                        alt={a.title}
+                                        class="w-full rounded-xl"
+                                        loading="lazy"
+                                        transition:name={`hero-${slug}`}
+                                    />
+                                </div>
+                            )}
+
+                            {/* Pattern card — only show if pattern exists */}
+                            {a.pattern && (
+                                <div
+                                    class="bg-accent-soft border border-accent-mid rounded-xl p-6 mb-8 animate-in"
+                                    style="--delay: 2"
+                                >
+                                    <div class="text-xs font-semibold uppercase tracking-wider text-accent mb-2">
+                                        Pattern
+                                    </div>
+                                    <p class="font-heading text-lg text-accent">
+                                        {a.pattern}
+                                    </p>
+                                </div>
+                            )}
+
+                            {a.content ? (
+                                <div
+                                    class="prose-content animate-in"
+                                    style="--delay: 3"
+                                    set:html={a.content}
+                                />
+                            ) : a.take || a.pattern ? (
+                                <div class="space-y-8">
+                                    <div class="animate-in" style="--delay: 3">
+                                        <h2 class="font-heading text-xl font-semibold mb-3">
+                                            {t("case.tonys_take")}
+                                        </h2>
+                                        <p class="text-soft text-lg leading-relaxed">
+                                            {a.take}
+                                        </p>
+                                    </div>
+                                    <div
+                                        class="grid md:grid-cols-2 gap-5 animate-in"
+                                        style="--delay: 4"
+                                    >
+                                        <div class="bg-green-soft rounded-xl p-5">
+                                            <h3 class="font-heading font-semibold mb-2 text-green">
+                                                {t("case.what_works")}
+                                            </h3>
+                                            <p class="text-sm text-soft">
+                                                {a.works}
+                                            </p>
+                                        </div>
+                                        <div class="bg-amber-soft rounded-xl p-5">
+                                            <h3 class="font-heading font-semibold mb-2 text-amber">
+                                                {t("case.what_different")}
+                                            </h3>
+                                            <p class="text-sm text-soft">
+                                                {a.different}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : Content ? (
+                                <div
+                                    class="prose-content animate-in"
+                                    style="--delay: 3"
+                                >
+                                    <Content />
+                                </div>
+                            ) : null}
+
+                            {/* Tool pills */}
+                            <div
+                                class="flex gap-2 flex-wrap mt-8 animate-in"
+                                style="--delay: 5"
+                            >
+                                {a.tools.map((slug) => (
+                                    <span class="px-3 py-1.5 rounded bg-accent-soft text-accent text-sm">
+                                        {getToolTitle(slug)}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                })()
+        }
+
+        {
+            /* ==============================
+        FORMAT: VIDEO EMBED
+        ============================== */
+        }
+        {
+            post.format === "video-embed" &&
+                (() => {
+                    const v = post as VideoEmbedPost;
+                    const embedUrl =
+                        v.provider === "youtube"
+                            ? `https://www.youtube.com/embed/${v.videoId}?autoplay=0&rel=0`
+                            : `https://iframe.mediadelivery.net/embed/play/${v.videoId}`;
+                    return (
+                        <div class="animate-in" style="--delay: 1">
+                            <div class="aspect-video rounded-xl overflow-hidden bg-ink/5">
+                                <iframe
+                                    src={embedUrl}
+                                    class="w-full h-full"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowfullscreen
+                                    loading="lazy"
+                                />
+                            </div>
+                            {v.duration && (
+                                <p class="text-sm text-faint mt-3">
+                                    Thời lượng: {formatDuration(v.duration)}
+                                </p>
+                            )}
+                        </div>
+                    );
+                })()
+        }
+
+        {
+            /* ==============================
+        FORMAT: AUDIO (single track)
+        ============================== */
+        }
+        {
+            post.format === "audio" &&
+                (() => {
+                    const a = post as AudioPost;
+                    return (
+                        <div class="animate-in" style="--delay: 1">
+                            {a.coverImage && (
+                                <div class="w-full max-w-sm mx-auto mb-6">
+                                    <img
+                                        src={a.coverImage}
+                                        alt={a.title}
+                                        class="w-full rounded-xl"
+                                        loading="lazy"
+                                    />
+                                </div>
+                            )}
+                            <div class="bg-card border border-border rounded-xl p-6">
+                                <audio
+                                    controls
+                                    class="w-full"
+                                    preload="metadata"
+                                >
+                                    <source
+                                        src={a.audioUrl}
+                                        type="audio/mpeg"
+                                    />
+                                </audio>
+                                <p class="text-sm text-faint mt-3">
+                                    Thời lượng: {formatDuration(a.duration)}
+                                </p>
+                            </div>
+                        </div>
+                    );
+                })()
+        }
+
+        {
+            /* ==============================
+        FORMAT: AUDIO PLAYLIST
+        ============================== */
+        }
+        {
+            post.format === "audio-playlist" &&
+                (() => {
+                    const pl = post as AudioPlaylistPost;
+                    return (
+                        <div class="animate-in" style="--delay: 1">
+                            {pl.coverImage && (
+                                <div class="w-full max-w-sm mx-auto mb-6">
+                                    <img
+                                        src={pl.coverImage}
+                                        alt={pl.title}
+                                        class="w-full rounded-xl"
+                                        loading="lazy"
+                                    />
+                                </div>
+                            )}
+                            <div class="bg-card border border-border rounded-xl overflow-hidden">
+                                {pl.tracks.map((track, i) => (
+                                    <div
+                                        class="flex items-center gap-4 px-5 py-4 border-b border-border-light last:border-b-0 hover:bg-ink/[0.02] transition-colors cursor-pointer playlist-track"
+                                        data-audio-url={track.audioUrl}
+                                    >
+                                        <span class="text-faint text-sm w-6 text-right">
+                                            {i + 1}
+                                        </span>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="font-medium text-[15px] truncate">
+                                                {track.title}
+                                            </div>
+                                            {track.artist && (
+                                                <div class="text-sm text-faint">
+                                                    {track.artist}
+                                                </div>
+                                            )}
+                                        </div>
+                                        <span class="text-sm text-faint shrink-0">
+                                            {formatDuration(track.duration)}
+                                        </span>
+                                        <button
+                                            type="button"
+                                            class="w-8 h-8 rounded-full bg-accent text-white flex items-center justify-center shrink-0 hover:bg-accent/80 transition-colors"
+                                            aria-label={`Play ${track.title}`}
+                                        >
+                                            <svg
+                                                class="w-4 h-4 ml-0.5"
+                                                viewBox="0 0 24 24"
+                                                fill="currentColor"
+                                            >
+                                                <path d="M8 5v14l11-7z" />
+                                            </svg>
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                })()
+        }
+
+        {
+            /* ==============================
+        FORMAT: QUOTE
+        ============================== */
+        }
+        {
+            post.format === "quote" &&
+                (() => {
+                    const q = post;
+                    return (
+                        <div class="py-8 animate-in" style="--delay: 1">
+                            <div class="bg-gradient-to-br from-accent-soft to-white border border-accent-mid rounded-2xl p-8 md:p-12">
+                                <svg
+                                    class="w-10 h-10 text-accent mb-6"
+                                    viewBox="0 0 24 24"
+                                    fill="currentColor"
+                                >
+                                    <path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z" />
+                                </svg>
+                                <blockquote class="font-heading text-3xl md:text-4xl font-medium text-accent leading-relaxed italic mb-6">
+                                    {q.quoteText}
+                                </blockquote>
+                                {q.attribution && (
+                                    <p class="text-lg font-medium text-soft">
+                                        — {q.attribution}
+                                    </p>
+                                )}
+                            </div>
+                        </div>
+                    );
+                })()
+        }
+
+        {
+            /* ==============================
+        FORMAT: GALLERY
+        ============================== */
+        }
+        {
+            post.format === "gallery" &&
+                (() => {
+                    const g = post as GalleryPost;
+                    return (
+                        <div class="animate-in" style="--delay: 1">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {g.images.map((img, i) => (
+                                    <div
+                                        class={`rounded-xl overflow-hidden bg-ink/5 cursor-pointer gallery-img ${i === 0 ? "md:col-span-2" : ""}`}
+                                        data-index={i}
+                                    >
+                                        <img
+                                            src={img.url}
+                                            alt={img.caption || g.title}
+                                            class="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
+                                            loading="lazy"
+                                            transition:name={
+                                                i === 0
+                                                    ? `hero-${slug}`
+                                                    : undefined
+                                            }
+                                        />
+                                        {img.caption && (
+                                            <div class="px-4 py-2.5 text-sm text-soft">
+                                                {img.caption}
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                            <p class="text-sm text-faint mt-4">
+                                {g.images.length} ảnh
+                            </p>
+                        </div>
+                    );
+                })()
+        }
+
+        {/* Author footer */}
+        {
+            builder && (
+                <footer
+                    class="mt-12 pt-8 border-t border-border animate-in"
+                    style="--delay: 6"
+                >
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-full bg-accent-soft flex items-center justify-center text-accent font-semibold text-lg">
+                            {builder.name.charAt(0)}
+                        </div>
+                        <div>
+                            <div class="font-medium">{builder.name}</div>
+                            <div class="text-sm text-faint">
+                                {builder.location}
+                            </div>
+                        </div>
+                    </div>
+                </footer>
+            )
+        }
+
+        {/* Tags */}
+        {
+            post.tags.length > 0 && (
+                <div class="flex gap-2 flex-wrap mt-8">
+                    {post.tags.map((tag) => (
+                        <span class="text-xs px-2.5 py-1 rounded-full border border-border text-faint">
+                            #{tag}
+                        </span>
+                    ))}
+                </div>
+            )
+        }
+
+        {/* Related Posts */}
+        {
+            relatedPosts.length > 0 && (
+                <div
+                    class="mt-16 pt-12 border-t border-border animate-in"
+                    style="--delay: 7"
+                >
+                    <h3 class="text-xl font-semibold mb-8 font-heading">
+                        Bài viết liên quan
+                    </h3>
+                    <div class="grid gap-6">
+                        {relatedPosts.map((relatedPost) => (
+                            <FeedCard post={relatedPost} />
+                        ))}
+                    </div>
+                </div>
+            )
+        }
+    </article>
+</BaseLayout>
+
+<script>
+    function initBackBtn() {
+        const btn = document.getElementById("backBtn");
+        if (!btn) return;
+
+        // Remove any existing listeners by cloning
+        const newBtn = btn.cloneNode(true);
+        btn.parentNode?.replaceChild(newBtn, btn);
+
+        newBtn.addEventListener("click", () => {
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.location.href = "/feed";
+            }
+        });
+    }
+
+    // Run immediately if DOM ready
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", initBackBtn);
+    } else {
+        initBackBtn();
+    }
+
+    // Also run on View Transitions
+    document.addEventListener("astro:page-load", initBackBtn);
+</script>

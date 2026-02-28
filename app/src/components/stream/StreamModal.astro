@@ -1,0 +1,518 @@
+---
+/**
+ * StreamModal — Pop-up overlay for viewing a stream item.
+ * URL changes to /stream/{slug} via history.replaceState on open,
+ * and reverts on close.
+ * Included globally in BaseLayout.
+ */
+import { X, ExternalLink, MessageCircle, Link2 } from "@lucide/astro";
+---
+
+<div
+    id="stream-modal-container"
+    class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto hidden opacity-0 transition-opacity duration-200"
+    style="padding-top: 10vh; padding-bottom: 2rem;"
+>
+    <!-- Backdrop -->
+    <div
+        id="stream-modal-backdrop"
+        class="fixed inset-0 bg-black/50 backdrop-blur-sm"
+    >
+    </div>
+
+    <!-- Modal -->
+    <div
+        id="stream-dialog"
+        class="relative w-full max-w-lg mx-auto p-0 border border-[var(--color-border)] rounded-xl shadow-2xl bg-[var(--color-bg,white)] transform scale-95 transition-transform duration-200 z-10"
+    >
+        <div
+            class="p-4 border-b border-[var(--color-border)] flex items-center justify-between"
+        >
+            <div class="flex items-center gap-2">
+                <span
+                    id="stream-modal-icon"
+                    class="w-6 h-6 flex items-center justify-center rounded-md"
+                >
+                    <ExternalLink class="w-4 h-4" id="stream-icon-link" />
+                    <MessageCircle
+                        class="w-4 h-4 hidden"
+                        id="stream-icon-post"
+                    />
+                </span>
+                <span
+                    class="text-[13px] font-semibold text-[var(--color-faint)] uppercase tracking-wide"
+                >
+                    Stream
+                </span>
+            </div>
+            <div class="flex items-center gap-1">
+                <!-- Share Image button -->
+                <button
+                    id="stream-modal-share-image"
+                    type="button"
+                    class="inline-flex items-center gap-1 text-[var(--color-soft)] hover:text-[var(--color-ink)] px-2 py-1.5 rounded-full hover:bg-[var(--color-ink)]/[0.05] transition-colors text-xs font-medium"
+                    aria-label="Share as image"
+                    title="Share as image"
+                >
+                    <svg
+                        class="w-3.5 h-3.5"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"
+                        ></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>
+                    <span>Ảnh</span>
+                </button>
+                <!-- Copy link button -->
+                <button
+                    id="stream-modal-copy"
+                    type="button"
+                    class="inline-flex items-center gap-1 text-[var(--color-soft)] hover:text-[var(--color-ink)] px-2 py-1.5 rounded-full hover:bg-[var(--color-ink)]/[0.05] transition-colors text-xs font-medium"
+                    aria-label="Copy link"
+                    title="Copy link"
+                >
+                    <Link2 class="w-3.5 h-3.5" />
+                    <span id="stream-modal-copy-label">Link</span>
+                </button>
+                <!-- Close button -->
+                <button
+                    id="stream-modal-close"
+                    class="text-[var(--color-soft)] hover:text-[var(--color-ink)] p-1.5 rounded-full hover:bg-[var(--color-ink)]/[0.05] transition-colors"
+                    aria-label="Close"
+                >
+                    <X class="w-5 h-5" />
+                </button>
+            </div>
+        </div>
+        <div class="p-5 max-h-[60vh] overflow-y-auto" id="stream-modal-content">
+            <!-- Content injected by JS -->
+            <h2
+                id="stream-modal-title"
+                class="font-semibold text-lg text-[var(--color-ink)] leading-snug mb-2"
+            >
+            </h2>
+            <div
+                id="stream-modal-meta"
+                class="flex items-center gap-2 text-xs text-[var(--color-faint)] mb-4"
+            >
+            </div>
+            <!-- Tab buttons (sticky) -->
+            <div id="stream-modal-tabs" class="hidden flex gap-1 mb-4 p-1.5 bg-[var(--color-bg)]/95 backdrop-blur-sm rounded-lg w-fit sticky top-0 z-10 -mx-1 px-1">
+                <button
+                    id="stream-tab-recap"
+                    type="button"
+                    class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors bg-white text-[var(--color-ink)] shadow-sm"
+                    data-tab="recap"
+                >
+                    Tóm tắt
+                </button>
+                <button
+                    id="stream-tab-full"
+                    type="button"
+                    class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors text-[var(--color-soft)] hover:text-[var(--color-ink)]"
+                    data-tab="full"
+                >
+                    Nội dung gốc
+                </button>
+            </div>
+            <!-- Recap content (default) -->
+            <div id="stream-modal-body" class="prose-content mt-4"></div>
+            <!-- Full content (lazy loaded) -->
+            <div id="stream-modal-full" class="hidden mt-4">
+                <div id="stream-full-loading" class="hidden py-8 text-center">
+                    <div class="inline-block w-5 h-5 border-2 border-[var(--color-accent)] border-t-transparent rounded-full animate-spin"></div>
+                    <p class="mt-2 text-sm text-[var(--color-soft)]">Đang tải nội dung...</p>
+                </div>
+                <div id="stream-full-content" class="prose-content"></div>
+                <div id="stream-full-meta" class="hidden mt-4 pt-4 border-t border-[var(--color-border)] text-xs text-[var(--color-faint)]"></div>
+            </div>
+            <div id="stream-modal-tags" class="flex flex-wrap gap-1.5 mt-4">
+            </div>
+        </div>
+        <!-- Sticky footer for action button -->
+        <div
+            id="stream-modal-actions"
+            class="hidden p-4 border-t border-[var(--color-border)] bg-[var(--color-bg,white)] rounded-b-xl"
+        >
+        </div>
+    </div>
+</div>
+
+<script>
+    // Use a flag on the document to prevent duplicate global listeners
+    // across astro:page-load events
+    const INIT_KEY = "__streamModalInitialized";
+
+    function initStreamModal() {
+        const container = document.getElementById("stream-modal-container");
+        const backdrop = document.getElementById("stream-modal-backdrop");
+        const dialog = document.getElementById("stream-dialog");
+        const closeBtn = document.getElementById("stream-modal-close");
+        const copyBtn = document.getElementById("stream-modal-copy");
+        const shareImgBtn = document.getElementById("stream-modal-share-image");
+        const copyLabel = document.getElementById("stream-modal-copy-label");
+        const titleEl = document.getElementById("stream-modal-title");
+        const metaEl = document.getElementById("stream-modal-meta");
+        const bodyEl = document.getElementById("stream-modal-body");
+        const tagsEl = document.getElementById("stream-modal-tags");
+        const actionsEl = document.getElementById("stream-modal-actions");
+        const iconLink = document.getElementById("stream-icon-link");
+        const iconPost = document.getElementById("stream-icon-post");
+        const iconWrap = document.getElementById("stream-modal-icon");
+        const tabsEl = document.getElementById("stream-modal-tabs");
+        const tabRecap = document.getElementById("stream-tab-recap");
+        const tabFull = document.getElementById("stream-tab-full");
+        const fullContainer = document.getElementById("stream-modal-full");
+        const fullLoading = document.getElementById("stream-full-loading");
+        const fullContent = document.getElementById("stream-full-content");
+        const fullMeta = document.getElementById("stream-full-meta");
+
+        if (
+            !container ||
+            !backdrop ||
+            !dialog ||
+            !closeBtn ||
+            !titleEl ||
+            !metaEl ||
+            !bodyEl ||
+            !tagsEl ||
+            !actionsEl
+        )
+            return;
+
+        let previousUrl: string | null = null;
+        let currentSlug: string | null = null;
+        let currentItem: any = null;
+        let isOpen = false;
+        let fullContentLoaded = false;
+        let fullContentCache: Record<string, { content: string; wordCount: number; sourceUrl: string }> = {};
+
+        function relativeTime(dateStr: string): string {
+            const now = new Date();
+            const date = new Date(dateStr);
+            const diffMs = now.getTime() - date.getTime();
+            const diffMin = Math.floor(diffMs / 60000);
+            if (diffMin < 1) return "vừa xong";
+            if (diffMin < 60) return `${diffMin}m trước`;
+            const diffHr = Math.floor(diffMin / 60);
+            if (diffHr < 24) return `${diffHr}h trước`;
+            const diffDay = Math.floor(diffHr / 24);
+            if (diffDay < 7) return `${diffDay} ngày trước`;
+            return date.toLocaleDateString("vi-VN", {
+                day: "numeric",
+                month: "long",
+            });
+        }
+
+        function switchTab(tab: "recap" | "full") {
+            if (!tabRecap || !tabFull || !bodyEl || !fullContainer) return;
+
+            const activeClass = "bg-white text-[var(--color-ink)] shadow-sm";
+            const inactiveClass = "text-[var(--color-soft)] hover:text-[var(--color-ink)]";
+
+            if (tab === "recap") {
+                tabRecap.className = `px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${activeClass}`;
+                tabFull.className = `px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${inactiveClass}`;
+                bodyEl.classList.remove("hidden");
+                fullContainer.classList.add("hidden");
+            } else {
+                tabFull.className = `px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${activeClass}`;
+                tabRecap.className = `px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${inactiveClass}`;
+                bodyEl.classList.add("hidden");
+                fullContainer.classList.remove("hidden");
+                loadFullContent();
+            }
+        }
+
+        async function loadFullContent() {
+            if (!currentSlug || !fullLoading || !fullContent || !fullMeta) return;
+
+            // Check cache first
+            if (fullContentCache[currentSlug]) {
+                const cached = fullContentCache[currentSlug];
+                fullContent.innerHTML = cached.content;
+                fullMeta.innerHTML = `${cached.wordCount.toLocaleString()} từ · <a href="${cached.sourceUrl}" target="_blank" rel="noopener noreferrer" class="text-[var(--color-accent)] hover:underline">Nguồn gốc</a>`;
+                fullMeta.classList.remove("hidden");
+                fullLoading.classList.add("hidden");
+                return;
+            }
+
+            // Show loading
+            fullLoading.classList.remove("hidden");
+            fullContent.innerHTML = "";
+            fullMeta.classList.add("hidden");
+
+            try {
+                const res = await fetch(`/api/stream-content/${currentSlug}`);
+                if (!res.ok) {
+                    if (res.status === 404) {
+                        fullContent.innerHTML = `<p class="text-[var(--color-soft)] italic">Nội dung gốc không khả dụng cho mục này.</p>`;
+                    } else {
+                        throw new Error(`HTTP ${res.status}`);
+                    }
+                    fullLoading.classList.add("hidden");
+                    return;
+                }
+
+                const data = await res.json();
+                fullContentCache[currentSlug] = {
+                    content: data.content,
+                    wordCount: data.wordCount,
+                    sourceUrl: data.sourceUrl,
+                };
+                fullContent.innerHTML = data.content;
+                fullMeta.innerHTML = `${data.wordCount.toLocaleString()} từ · <a href="${data.sourceUrl}" target="_blank" rel="noopener noreferrer" class="text-[var(--color-accent)] hover:underline">Nguồn gốc</a>`;
+                fullMeta.classList.remove("hidden");
+            } catch (err) {
+                console.error("Failed to load full content:", err);
+                fullContent.innerHTML = `<p class="text-red-500">Không thể tải nội dung. Vui lòng thử lại.</p>`;
+            } finally {
+                fullLoading.classList.add("hidden");
+            }
+        }
+
+        function openStreamModal(item: any) {
+            // Prevent double-open overwriting previousUrl
+            if (isOpen) return;
+            isOpen = true;
+
+            const isLink = item.type === "link";
+            currentSlug = item.slug;
+            currentItem = item;
+
+            // Icon
+            if (iconLink && iconPost && iconWrap) {
+                iconLink.classList.toggle("hidden", !isLink);
+                iconPost.classList.toggle("hidden", isLink);
+                iconWrap.className = `w-6 h-6 flex items-center justify-center rounded-md ${isLink ? "bg-blue-50 text-blue-600" : "bg-violet-50 text-violet-600"}`;
+            }
+
+            // Title
+            titleEl!.textContent = item.title;
+
+            // Meta
+            const metaParts = [relativeTime(item.date)];
+            if (isLink && item.source) metaParts.push(`· ${item.source}`);
+            metaEl!.textContent = metaParts.join(" ");
+
+            // Body
+            bodyEl!.innerHTML = item.body || "";
+
+            // Init GLightbox for any images in the modal body
+            setTimeout(() => {
+                if ((window as any).initVibeLightbox) {
+                    (window as any).initVibeLightbox("#stream-modal-body");
+                }
+            }, 50);
+
+            // Tags
+            if (item.tags && item.tags.length > 0) {
+                tagsEl!.innerHTML = item.tags
+                    .map(
+                        (tag: string) =>
+                            `<span class="text-[11px] px-2 py-0.5 rounded-full bg-[var(--color-ink)]/[0.04] text-[var(--color-faint)] font-medium">#${tag}</span>`,
+                    )
+                    .join("");
+            } else {
+                tagsEl!.innerHTML = "";
+            }
+
+            // Actions (sticky footer)
+            if (isLink && item.url) {
+                actionsEl!.innerHTML = `<a href="${item.url}" target="_blank" rel="noopener noreferrer" class="w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium bg-[var(--color-accent)] text-white hover:opacity-90 transition-opacity">Truy cập <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>`;
+                actionsEl!.classList.remove("hidden");
+            } else {
+                actionsEl!.innerHTML = "";
+                actionsEl!.classList.add("hidden");
+            }
+
+            // Show tabs for link type items, reset to recap tab
+            if (isLink && tabsEl && fullContainer && fullContent) {
+                tabsEl.classList.remove("hidden");
+                tabsEl.classList.add("flex");
+                // Reset to recap tab
+                switchTab("recap");
+                fullContent.innerHTML = "";
+            } else if (tabsEl) {
+                tabsEl.classList.add("hidden");
+                tabsEl.classList.remove("flex");
+            }
+
+            // Save current URL BEFORE changing it
+            previousUrl =
+                window.location.pathname +
+                window.location.search +
+                window.location.hash;
+
+            // Change URL to stream item slug
+            history.replaceState(
+                { streamModal: true, slug: item.slug, prev: previousUrl },
+                "",
+                `/stream/${item.slug}`,
+            );
+
+            // Show animation
+            container!.classList.remove("hidden");
+            requestAnimationFrame(() => {
+                container!.classList.remove("opacity-0");
+                dialog!.classList.remove("scale-95");
+                dialog!.classList.add("scale-100");
+                document.body.style.overflow = "hidden"; // Prevent background scroll
+            });
+        }
+
+        function closeStreamModal() {
+            if (!isOpen) return;
+            isOpen = false;
+
+            // Hide animation
+            container!.classList.add("opacity-0");
+            dialog!.classList.remove("scale-100");
+            dialog!.classList.add("scale-95");
+            document.body.style.overflow = "";
+
+            setTimeout(() => {
+                container!.classList.add("hidden");
+                // Revert URL
+                if (previousUrl !== null) {
+                    history.replaceState(null, "", previousUrl);
+                    previousUrl = null;
+                    currentSlug = null;
+                    currentItem = null;
+                }
+            }, 200);
+        }
+
+        // Close button
+        closeBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            closeStreamModal();
+        });
+
+        // Tab buttons
+        if (tabRecap) {
+            tabRecap.addEventListener("click", () => switchTab("recap"));
+        }
+        if (tabFull) {
+            tabFull.addEventListener("click", () => switchTab("full"));
+        }
+
+        // Share Image button
+        if (shareImgBtn) {
+            shareImgBtn.addEventListener("click", (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!currentItem || !(window as any).openShareImageModal)
+                    return;
+
+                // Map the stream item data to match what ShareImageModal expects for a post
+
+                // Try to extract the first image from the body HTML
+                let firstImage = "";
+                if (currentItem.body) {
+                    const tempDiv = document.createElement("div");
+                    tempDiv.innerHTML = currentItem.body;
+                    const img = tempDiv.querySelector("img");
+                    if (img && img.src) {
+                        firstImage = img.src;
+                        // Add cache buster to force a new request with CORS headers
+                        // since the original image was loaded without crossorigin="anonymous"
+                        if (firstImage.includes("?")) {
+                            firstImage += `&c=${Date.now()}`;
+                        } else {
+                            firstImage += `?c=${Date.now()}`;
+                        }
+                    }
+                }
+
+                const shareData = {
+                    slug: `stream/${currentItem.slug}`,
+                    title: currentItem.title,
+                    subtitle: "", // Could parse excerpt from body, but keeping clean for now
+                    format: currentItem.type === "link" ? "link" : "streaming",
+                    tags: currentItem.tags || [],
+                    heroImage: firstImage,
+                };
+
+                (window as any).openShareImageModal(shareData);
+            });
+        }
+
+        // Copy link button
+        if (copyBtn && copyLabel) {
+            copyBtn.addEventListener("click", async (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (!currentSlug) return;
+                const url = `${window.location.origin}/stream/${currentSlug}`;
+                try {
+                    await navigator.clipboard.writeText(url);
+                } catch {
+                    const input = document.createElement("input");
+                    input.value = url;
+                    document.body.appendChild(input);
+                    input.select();
+                    document.execCommand("copy");
+                    input.remove();
+                }
+                const original = copyLabel.textContent;
+                copyLabel.textContent = "Copied!";
+                copyLabel.style.color = "var(--color-green, #1a7f5a)";
+                setTimeout(() => {
+                    copyLabel.textContent = original;
+                    copyLabel.style.color = "";
+                }, 1500);
+            });
+        }
+
+        // Backdrop click close
+        backdrop.addEventListener("click", () => {
+            closeStreamModal();
+        });
+
+        // Prevent native Escape from closing without our handler?
+        // Let's implement escape key handler manually since we dropped <dialog>
+        document.addEventListener("keydown", (e) => {
+            if (e.key === "Escape" && isOpen) {
+                closeStreamModal();
+            }
+        });
+
+        // Expose globally
+        (window as any).openStreamModal = openStreamModal;
+
+        // Register the GLOBAL delegated click handler ONLY ONCE
+        if (!(document as any)[INIT_KEY]) {
+            (document as any)[INIT_KEY] = true;
+
+            document.addEventListener("click", (e) => {
+                const trigger = (e.target as HTMLElement).closest(
+                    ".stream-item-trigger",
+                ) as HTMLElement;
+                if (trigger) {
+                    e.preventDefault();
+                    try {
+                        const item = JSON.parse(
+                            trigger.dataset.streamItem || "{}",
+                        );
+                        // Use the latest exposed function
+                        if ((window as any).openStreamModal) {
+                            (window as any).openStreamModal(item);
+                        }
+                    } catch (err) {
+                        console.error("Stream modal error:", err);
+                    }
+                }
+            });
+        }
+    }
+
+    document.addEventListener("astro:page-load", initStreamModal);
+</script>

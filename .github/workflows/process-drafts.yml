@@ -1,0 +1,79 @@
+name: Process Draft Content
+
+on:
+  push:
+    branches: [draft]
+    paths:
+      - 'app/src/content/posts/**.mdx'
+
+jobs:
+  process-drafts:
+    name: Process Draft MDX
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: draft
+
+      - name: Find and process draft posts
+        env:
+          INGEST_URL: ${{ secrets.INGEST_URL }}
+          INGEST_SECRET: ${{ secrets.INGEST_SECRET }}
+        run: |
+          # Find MDX files changed in this push
+          CHANGED=$(git diff --name-only HEAD~1 HEAD -- 'app/src/content/posts/*.mdx' 2>/dev/null || echo "")
+
+          if [ -z "$CHANGED" ]; then
+            echo "No MDX files changed"
+            exit 0
+          fi
+
+          for file in $CHANGED; do
+            echo "Checking $file..."
+
+            # Only process files with status: draft
+            if ! grep -q '^status:.*draft' "$file" 2>/dev/null; then
+              echo "  Skipping (not status: draft)"
+              continue
+            fi
+
+            echo "  Found status: draft — processing..."
+
+            # Extract slug from filename
+            SLUG=$(basename "$file" .mdx)
+
+            # Extract frontmatter (between --- markers)
+            FRONTMATTER=$(sed -n '/^---$/,/^---$/p' "$file" | sed '1d;$d')
+            BODY=$(sed -n '/^---$/,/^---$/!p' "$file" | tail -n +1)
+
+            # Build JSON payload — extract key frontmatter fields
+            TITLE=$(echo "$FRONTMATTER" | grep '^title:' | sed 's/^title: *//' | sed 's/^"//;s/"$//')
+            FORMAT=$(echo "$FRONTMATTER" | grep '^format:' | sed 's/^format: *//' | sed 's/^"//;s/"$//')
+            HERO=$(echo "$FRONTMATTER" | grep '^heroImage:' | sed 's/^heroImage: *//' | sed 's/^"//;s/"$//')
+
+            FORMAT=${FORMAT:-article}
+
+            # Build media array — only for external URLs
+            MEDIA="[]"
+            if [ -n "$HERO" ] && echo "$HERO" | grep -q '^http'; then
+              MEDIA=$(cat <<EOF
+          [{"field":"heroImage","sourceUrl":"$HERO","filename":"hero.webp","contentType":"image/webp"}]
+          EOF
+              )
+            fi
+
+            # Call ingest worker
+            RESPONSE=$(curl -s -X POST "$INGEST_URL" \
+              -H "Content-Type: application/json" \
+              -H "Authorization: Bearer $INGEST_SECRET" \
+              -d "$(jq -n \
+                --arg slug "$SLUG" \
+                --arg format "$FORMAT" \
+                --arg title "$TITLE" \
+                --arg body "$BODY" \
+                --argjson media "$MEDIA" \
+                '{slug: $slug, format: $format, frontmatter: {title: $title, format: $format}, body: $body, media: $media}'
+              )")
+
+            echo "  Response: $RESPONSE"
+          done
